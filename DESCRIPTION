@@ -1,0 +1,10 @@
+Package: nets
+Type: Package
+Title: What the package does (short line)
+Version: 1.0
+Date: 2012-07-09
+Author: Who wrote it
+Maintainer: Christian Brownlees <christian.brownlees@upf.edu>
+Description: More about what it does (maybe more than one line)
+License: What license is it under?
+LazyLoad: yes
