@@ -1,17 +1,13 @@
 \name{nets}
 \alias{nets}
-%- Also NEED an '\alias' for EACH other topic documented here.
-\title{
-%%  ~~function to do ... ~~
-}
-\description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
-}
+\title{Network Estimation for Time Series}
+\description{The NETS package provides routines to estimation of graphical models for time series data}
 \usage{
 nets()
 }
 %- maybe also 'usage' for other objects documented here.
 \details{
+Details
 %%  ~~ If necessary, more details than the description above ~~
 }
 \value{
@@ -37,9 +33,8 @@ nets()
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
+
+1+1
 
 ## The function is currently defined as
 function(){}

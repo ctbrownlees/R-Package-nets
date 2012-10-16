@@ -1,22 +1,14 @@
 
-nets <- function(y,lambda="auto",q="auto"){
+.packageName <- "nets"
 
-	# checks
-	is.matrix(y)
-
-	# problem dimensions
-	T <- nrow(y)
-	n <- ncol(y)
-
-	# parsing options
-	if( !is.character(lambda) ){ 
-		lambda.selection <- "fixed"
-	}
-	else{
-		lambda.selection <- lambda
-	}
-	
-
+.First.lib <- function(lib, pkg)
+{
+     library.dynam("nets", pkg, lib)
 
 }
 
+nets <- function(){
+     a <- c(1,2,3)
+     results <- .C("adding", as.double(a), as.integer(length(a)), ab = double(length(a)))
+     print( results )
+}
