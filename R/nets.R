@@ -12,3 +12,7 @@ nets <- function(){
      results <- .C("adding", as.double(a), as.integer(length(a)), ab = double(length(a)))
      print( results )
 }
+
+plot.nets <- function(network){
+
+}

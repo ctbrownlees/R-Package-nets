@@ -18,10 +18,10 @@ Details
 %% ...
 }
 \references{
-%% ~put references to the literature/web site here ~
+Barigozzi, M. and Brownlees, C. (2012) NETS: Network Estimation for Time Series
 }
 \author{
-%%  ~~who you are~~
+Christian Brownlees
 }
 \note{
 %%  ~~further notes~~
@@ -36,10 +36,6 @@ Details
 
 1+1
 
-## The function is currently defined as
-function(){}
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+\keyword{network}
+\keyword{timeseries}
