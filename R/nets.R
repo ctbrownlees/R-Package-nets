@@ -1,28 +1,21 @@
 
 .packageName <- "nets"
 
-.First.lib <- function(lib, pkg)
-{
-     library.dynam("nets", pkg, lib)
+.First.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
 
-}
+.onLoad.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
 
-nets <- function(){
-     a <- c(1,2,3)
-     results <- .C("adding", as.double(a), as.integer(length(a)), ab = double(length(a)))
-     print( results )
-}
+nets <- function(){ }
 
-plot.nets <- function(network){
-
-}
+plot.nets <- function(network){ }
 
 nets.alasso <- function(y,X,lambda,w='adaptive'){
 	
+	M <- nrow(y)
+	N <- ncol(X)
+
 	toll <- 1e-6
 	maxiter <- 20
-	T <- length(y)
-	P <- ncol(X)
 
 	# check inputs
 	if( any( !is.finite(y) ) ){ stop('The response vector contains non finite values.') }
@@ -36,31 +29,90 @@ nets.alasso <- function(y,X,lambda,w='adaptive'){
 			w <- 1/abs(beta.pre)
 		}
 		else {
-			# ridge
-			w <- rep(1,P)
+			# TODO: ridge
+			w <- rep(1,N)
 		}
 	}
 	else {
-		w <- rep(1,P);
+		w <- rep(1,N);
 	}
 
 	# call shooting algorithm
+        results <- .C("shooting", theta=as.double(rep(0,N)) , as.double(y) , as.double(X) , as.double(lambda) , as.double(w) , as.integer(M) , as.integer(N) )
 
-	results <- list( theta=theta , eps=(y-X%*%theta) )
+	# packaging results
+	results <- list( theta=results$theta , eps=(y-X%*%results$theta) )
 }
 
+nets.sparse.varfit <- function(y,p=1,lambda=0,lambda.range=NULL,v=NULL,w='adaptive',verbose=FALSE){
 
-nets.test <- function()
-{
-	y <- c(1,2,2)
+	T <- nrow(y)
+	N <- ncol(y)
 
-	X <- matrix( 1:9 , 3 ,3 )
+	# lambda range
+	if( is.null(lambda.range) )
+	{
+		lambda.range <- lambda
+		bic <- rep(0,1)
+	}
+	else
+	{
+		lambda.range <- rev( lambda.range )
+		bic <- rep( 0 , length(lambda.range) )
+	}
 
-	theta <- c(0,0,0)
+	# THIS IS A BIT DUMB!
+	cat('Sparse VAR estimation: ')
+	stuff = list()
+	trace = matrix(0,length(lambda.range),N*N*p)
+	for( li in 1:length(lambda.range) )
+	{
+		cat('.')
 
-        results <- .C("shooting", as.double(v), as.double(A), as.double(r) )
+		bic[li] <- 0
+		A   <- array( 0 , dim=c(p,N,N) )
+		eps <- matrix( 0 , T , N )
+		for( i in 1:N )
+		{
+			Y <- matrix( 0 , T-p , 1 ) 
+			X <- matrix( 0 , T-p , p*N )
+			
+			Y[] <- y[ (p+1):T , i]
+			for( l in 1:p )
+			{
+				X[, ( (p-1)*N + p ):( p*N ) ] <- y[ (p+1-l):(T-l) , ]
+			}	
+		
+			results <- nets.alasso( Y , X , v=v, w=w, lambda=lambda.range[li] )
 
-	print( results )
+			for( l in 1:p )
+			{
+				A[l,i,] <- results$theta[ ( (p-1)*N + p ):( p*N ) ]
+			}
 
-	print( A %*% v )
+			eps[ (p+1):T ,i] <- results$eps
+
+			bic[li] <- bic[li] + T * log( sum(eps^2) ) + log(T) * sum( results$theta != 0 ); 
+		}
+
+		trace[li,] <- A[1:(N*N*p)]
+
+		stuff[[li]] <- list()
+		stuff[[li]]$A <- A
+		stuff[[li]]$eps <- eps
+	}
+	cat('\n')
+
+	opt <- (1:length(lambda.range))[ rank(bic,ties.method="first")==1 ]
+	lambda.hat <- lambda.range[ opt ]
+	A <- stuff[[ opt ]]$A
+	eps <- stuff[[ opt ]]$eps
+
+	for( li in 1:length(lambda.range) )
+	{
+		trace[li,] <- trace[li,] / (trace[length(lambda.range),]+0.01)
+	}
+
+	list( A=A , eps=eps , lambda=lambda.hat , trace=trace )
 }
+
