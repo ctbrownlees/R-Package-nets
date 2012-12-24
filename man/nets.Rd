@@ -1,11 +1,14 @@
 \name{nets}
 \alias{nets}
 \title{Network Estimation for Time Series}
-\description{The NETS package provides routines to estimation of graphical models for time series data}
+\description{`nets` is used to fit sparse long run partial correlation networks for time series using the NETS algorithm.}
 \usage{
-nets()
+nets(y,p,lambda.G,lambda.C)
 }
-%- maybe also 'usage' for other objects documented here.
+\arguments{
+\item{y}{data, an T x n matrix, each column being a data time series.}
+\item{p}{VAR order.}
+}
 \details{
 Details
 %%  ~~ If necessary, more details than the description above ~~
@@ -26,8 +29,6 @@ Christian Brownlees
 \note{
 %%  ~~further notes~~
 }
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
 %% ~~objects to See Also as \code{\link{help}}, ~~~

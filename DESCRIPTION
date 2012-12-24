@@ -1,10 +1,11 @@
 Package: nets
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
-Date: 2012-07-09
-Author: Who wrote it
+Title: Network Estimation for Time Series
+Version: 0.1
+Date: 2012-09-03
+Author: Christian Brownlees
 Maintainer: Christian Brownlees <christian.brownlees@upf.edu>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Depends: igraph
+Description: The NETS packagae provides routines for the estimation of sparse long run partial correlation networks for time series data 
+License: GPL 
 LazyLoad: yes

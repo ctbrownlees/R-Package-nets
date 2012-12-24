@@ -5,7 +5,7 @@ library(MASS)
 
 # Problem Parameters
 N   <- 6
-T   <- 5000
+T   <- 500
  
 # SigInv
 SigInv <- matrix( 0 , N , N )
@@ -18,7 +18,7 @@ SigInv[6,1] <-  0.00; SigInv[6,2] <-  0.00; SigInv[6,3] <-  0.00; SigInv[6,4] <-
 
 y <- mvrnorm(T, rep(0,N) , solve(SigInv) )
 
-results     <- nets.cov.sfit( y, lambda.range=seq(0.01,10.1,1), verbose=TRUE)
+results <- nets.cov.sfit( y, lambda.range=100 )
 
 print( cbind( SigInv , rep(NA,N) , round(results$K,2) ) )
 cat('\n')
