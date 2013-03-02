@@ -23,7 +23,7 @@ y <- matrix(0,T,N)
 eps <- matrix( rnorm(T*N,0,1) , T , N )
 for( t in 2:T ){ y[t,] = A %*% y[t-1,] + eps[t,] }
 
-network <- nets(y,type='g',lambda.G=1,verbose=TRUE)
+network <- nets(y,type='g',lambda=1,verbose=TRUE)
 
 print( cbind( A , rep(NA,N) , round( network$A[1,,] , 2 ) ) )
 

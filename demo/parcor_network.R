@@ -18,16 +18,16 @@ SigInv[6,1] <-  0.00; SigInv[6,2] <-  0.00; SigInv[6,3] <-  0.00; SigInv[6,4] <-
 
 y <- mvrnorm(T, rep(0,N) , solve(SigInv) )
 
-network <- nets( y, type='pc' , lambda.range=100 )
+network <- nets( y, type='pc' , lambda=20 )
 
-print( cbind( SigInv , rep(NA,N) , round(network$K,2) ) )
+print( cbind( SigInv , rep(NA,N) , round(network$C,2) ) )
 cat('\n')
 
 # Some Metrics
-mse <- sqrt( sum( (SigInv - network$K)^2 ) )
-tp1 <- mean( (network$K)[ SigInv==0 ] != 0 ) # THIS IS WRONG: I SHOULD NOT CONSIDER THE DIAGONAL
-pow <- mean( (network$K)[ SigInv!=0 ] != 0 )
-pos <- min(eigen( network$K )$values)> 1e-6 
+mse <- sqrt( sum( (SigInv - network$C)^2 ) )
+tp1 <- mean( (network$C)[ SigInv==0 ] != 0 ) # THIS IS WRONG: I SHOULD NOT CONSIDER THE DIAGONAL
+pow <- mean( (network$C)[ SigInv!=0 ] != 0 )
+pos <- min(eigen( network$C )$values)> 1e-6 
 
 cat( 'MSE' , mse , 'TYPE1' , tp1 , 'pow' , pow , 'pos:' , pos , 'lambda' , network$lambda , '\n')
 

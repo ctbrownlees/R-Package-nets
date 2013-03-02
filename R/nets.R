@@ -5,15 +5,15 @@
 
 .onLoad.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
 
-nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda.G=NULL , lambda.C=NULL , verbose=FALSE ){ 
+nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=NULL , verbose=FALSE ){ 
 
 	# control for errors
 	
 	# redirect to the appropriate network estimation routine
 	network <- switch( type ,
-		lrpc=nets.lrpc( y , p , lambda.G , lambda.C , verbose ),
-		pc=nets.pc( y , lambda.C , verbose ),
-		g=nets.g( y , p , lambda.G , verbose ) )
+		lrpc=nets.lrpc( y , p , lambda , verbose ),
+		pc=nets.pc( y , lambda , verbose ),
+		g=nets.g( y , p , lambda , verbose ) )
 
 	# prepare igraph stuff
 	if( type=='lrpc' | type=='pc' ){
@@ -24,6 +24,11 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda.G=NULL , 
 	}
 	V(ig)$label <- V(ig)$name	
 	network$ig <- ig
+
+	# type
+	network$type <- type
+	network$T    <- nrow(y)
+	network$N    <- ncol(y)
 
 	class(network) <- 'nets'
 
@@ -36,113 +41,78 @@ plot.nets <- function( network , ... ){
 
 print.nets <- function( network ) {
 
-	cat( ' Number of Detected Edges: ' )
+	labels <- list( lrpc='Long Run Partial Correlation' , pc='Partial Correlation' , g='Granger' )
 
-	#sum( network$K.lr[ lower.tri( network$K.lr ) ]!=0 ) , ' (out of ' , length( network$K.lr[ lower.tri( network$K.lr ) ]!=0 ) , ' possible edges)\n' , sep='' )
-	#cat( ' Granger Links: ' , sum( network$G[ col(network$G)!=row(network$G) ]!=0 ) , ' Contemporaneous Links: ' , sum( network$K[ lower.tri( network$K ) ]!=0 ) , '\n' , sep='')
+	if( network$type=='g' ){ 
+		nedge <- sum( network$Adj ); 
+		medge <- network$N^2 
+	}  
+	else { 
+		nedge <- sum( network$Adj[ lower.tri(network$Adj) ]!=0 ); 
+		medge <- ((network$N-1)*network$N)/2.0
+	}
+
+	cat( ' ' , labels[[ network$type ]] , ' Network\n' , sep='' )
+	cat( ' Number of Detected Edges: ' , nedge , ' (' , round( (nedge/medge)*100 , 1 ) , '%)\n' , sep='' )
 
 }
 
 # Long Run Partial Correlation Network
-nets.lrpc <- function(y,lambda.G,lambda.C){
+nets.lrpc <- function(y,lambda,verbose){
 
 	T <- nrow(y)
 	N <- ncol(y)
 	labels <- dimnames(y)[[2]]
 
 	# G  
-	results.G <- nets.var.sfit(y,p=p,lambda=lambda.G,lambda.range=lambda.G.range,verbose=verbose)
-
-	G <- matrix(0,N,N)
-	G[ col(G)==row(G) ] <- 1
-	for( i in 1:p ){ G <- G - results.G$A[i,,] }
+	network.G <- nets.g(y,p=p,lambda=lambda[1],verbose=verbose)
 
 	# C
 	eps <- results.G$eps 
-	results.C <- nets.cov.sfit.alt(eps,lambda=lambda.C,lambda.range=lambda.C.range,verbose=verbose)
+	results.C <- nets.cov.sfit.alt(eps,lambda=lambda[2],verbose=verbose)
 	K <- results.C$K
 
-	# all togher
-	K.lr <- t(G) %*% K %*% G
-	Adj.lr <- (K.lr != 0)*1
-	Adj.lr[ row(Adj.lr)==col(Adj.lr) ] <- 0
+	# put results together
+	G <- matrix(0,N,N)
+	G[ col(G)==row(G) ] <- 1
+	G <- G - network$G
+
+	KLR <- t(G) %*% K %*% G
+	Adj <- (KLR != 0)*1
+	Adj[ row(Adj.lr)==col(Adj.lr) ] <- 0
 
 	# packaging results
-	dimnames(K.lr) <- list(labels,labels)
-	dimnames(Adj.lr) <- list(labels,labels)
-	dimnames(G) <- list(labels,labels)
-	dimnames(K) <- list(labels,labels)
+	dimnames(KLR) <- list(labels,labels)
+	dimnames(Adj) <- list(labels,labels)
+	dimnames(G)   <- list(labels,labels)
+	dimnames(K)   <- list(labels,labels)
 
 }
 
 # Partial Correlation Network
-nets.pc <- function(y,lambda.C){
+nets.pc <- function(y,lambda,verbose){
 
 	T <- nrow(y)
 	N <- ncol(y)
 	labels <- dimnames(y)[[2]]
-	if( is.null(labels) ) labels <- paste('V',1:N,sep='') dimnames(y)[[2]]
+	if( is.null(labels) ) labels <- paste('V',1:N,sep='') 
 
-	# ESTIMATE
-	if(verbose) cat('Sparse Inverse Covariance estimation: ')
-	stuff = list()
+	results <- nets.space(y,lambda,verbose)	
+	bic <- 0
 
-	for( li in 1:length(lambda.range) )
-	{
-		if(verbose) cat('.')
+	C <- results$K 
+	Adj <-(C!=0)*1
+	Adj[ row(Adj)==col(Adj) ] <- 0
 
-		results   <- space.joint(y,lam1=lambda.range[li])
+	dimnames(C)   <- list(labels,labels)
+	dimnames(Adj) <- list(labels,labels)
 
-		BETA <- results$ParCor
-		for( i in 1:N ){
-			for( j in 1:N ){
-				BETA[i,j] <- results$ParCor[i,j] * ( results$sig.fit[j]/results$sig.fit[i] )
-			}
-		}
+	network     <- list()
+	network$C   <- C
+	network$bic <- bic
+	network$Adj <- Adj
 
-		results$K <- diag( sqrt(results$sig.fit) ) %*% results$ParCor %*% diag( sqrt(results$sig.fit) )
-		results$K[ col(results$K) != row(results$K) ] <- -results$K[ col(results$K) != row(results$K) ]
-	
-		bic[li] <- 0
-		nze[li] <- 0
-		rss[li] <- 0
-		for( i in 1:N ){ 
-			nzero <- 0
-			for( j in (1:N)[(1:N)!=i] ){
-				eps <- y[,i]
-				for( j in (1:N)[(1:N)!=i] ){
-					eps <- eps - BETA[i,j] * y[,j]
-					if( BETA[i,j]!=0 ) nzero <- nzero + 1;
-				}
-				if( results$K[i,j]!=0 )	nzero <- nzero + 1;
-			}
-			bic[li] <- bic[li] + T * log( sum(eps^2) ) + log(T) * nzero
-			rss[li] <- rss[li] + T * log( sum(eps^2) )
-			nze[li] <- nze[li] + nzero;
-		}
-		stuff[[li]] <- list()
-		stuff[[li]]$K <- results$K
-	}
-	if(verbose) cat('\n')
-
-	print( bic )
-	print( rss )
-	print( nze )
-	print( bic + log(T)*nze )
-
-	opt <- (1:length(lambda.range))[ rank(bic,ties.method="first")==1 ]
-	print( opt )
-	lambda.hat <- lambda.range[ opt ]
-
-	results   <- space.joint(y,lam1=lambda.hat)
-	results$K <- diag( sqrt(results$sig.fit) ) %*% results$ParCor %*% diag( sqrt(results$sig.fit) )
-	results$K[ col(results$K) != row(results$K) ] <- -results$K[ col(results$K) != row(results$K) ]
-
-	K <- results$K
-
-	# result
-	list( K=K, lambda=lambda.hat )
-
+	network
 }
 
 # Granger Network
@@ -190,7 +160,7 @@ nets.g <- function(y,p=1,lambda=0,v=NULL,w='adaptive',verbose=FALSE,procedure='s
 	network     <- list()
 	network$A   <- A
 	network$G   <- G
-	network$ic  <- bic
+	network$bic <- bic
 	network$Adj <- Adj
 
 	network
