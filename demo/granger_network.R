@@ -23,14 +23,14 @@ y <- matrix(0,T,N)
 eps <- matrix( rnorm(T*N,0,1) , T , N )
 for( t in 2:T ){ y[t,] = A %*% y[t-1,] + eps[t,] }
 
-results <- nets.var.sfit(y,lambda.range=c(seq(0.05,20,0.25),50,100,1000),verbose=TRUE)
+network <- nets(y,type='g',lambda.G=1,verbose=TRUE)
 
-print( cbind( A , rep(NA,N) , round( results$A[1,,] , 2 ) ) )
+print( cbind( A , rep(NA,N) , round( network$A[1,,] , 2 ) ) )
 
-mse <- sqrt( sum( (A - results$A[1,,])^2 ) )
-tp1 <- mean( (results$A[1,,])[ A==0 ] != 0 )
-pow <- mean( (results$A[1,,])[ A!=0 ] != 0 )
+mse <- sqrt( sum( (A - network$A[1,,])^2 ) )
+tp1 <- mean( (network$A[1,,])[ A==0 ] != 0 )
+pow <- mean( (network$A[1,,])[ A!=0 ] != 0 )
 
-cat( 'MSE' , mse , 'TYPE1' , tp1 , 'POW' , pow , 'lambda' , results$lambda , '\n')
+cat( 'MSE' , mse , 'TYPE1' , tp1 , 'POW' , pow , 'lambda' , network$lambda , '\n')
 
 

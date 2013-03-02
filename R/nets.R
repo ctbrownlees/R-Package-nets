@@ -5,14 +5,50 @@
 
 .onLoad.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
 
-nets <- function( y , p=1 , lambda.G=NULL , lambda.G.range=NULL , lambda.C=NULL , lambda.C.range=NULL , verbose=FALSE ){ 
+nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda.G=NULL , lambda.C=NULL , verbose=FALSE ){ 
+
+	# control for errors
+	
+	# redirect to the appropriate network estimation routine
+	network <- switch( type ,
+		lrpc=nets.lrpc( y , p , lambda.G , lambda.C , verbose ),
+		pc=nets.pc( y , lambda.C , verbose ),
+		g=nets.g( y , p , lambda.G , verbose ) )
+
+	# prepare igraph stuff
+	if( type=='lrpc' | type=='pc' ){
+		ig <- graph.adjacency( network$Adj , mode='undirected')
+	}
+	else {
+		ig <- graph.adjacency( network$Adj , mode='directed')
+	}
+	V(ig)$label <- V(ig)$name	
+	network$ig <- ig
+
+	class(network) <- 'nets'
+
+	network
+}
+
+plot.nets <- function( network , ... ){ 
+  	plot( network$ig , ... )
+}
+
+print.nets <- function( network ) {
+
+	cat( ' Number of Detected Edges: ' )
+
+	#sum( network$K.lr[ lower.tri( network$K.lr ) ]!=0 ) , ' (out of ' , length( network$K.lr[ lower.tri( network$K.lr ) ]!=0 ) , ' possible edges)\n' , sep='' )
+	#cat( ' Granger Links: ' , sum( network$G[ col(network$G)!=row(network$G) ]!=0 ) , ' Contemporaneous Links: ' , sum( network$K[ lower.tri( network$K ) ]!=0 ) , '\n' , sep='')
+
+}
+
+# Long Run Partial Correlation Network
+nets.lrpc <- function(y,lambda.G,lambda.C){
 
 	T <- nrow(y)
 	N <- ncol(y)
 	labels <- dimnames(y)[[2]]
-	
-	# if labels are nul... do somethin'!
-	# labels <- paste('V',1:N,sep='')
 
 	# G  
 	results.G <- nets.var.sfit(y,p=p,lambda=lambda.G,lambda.range=lambda.G.range,verbose=verbose)
@@ -37,225 +73,20 @@ nets <- function( y , p=1 , lambda.G=NULL , lambda.G.range=NULL , lambda.C=NULL 
 	dimnames(G) <- list(labels,labels)
 	dimnames(K) <- list(labels,labels)
 
-	ig <- graph.adjacency( Adj.lr , mode='undirected')
-	V(ig)$label <- V(ig)$name
-	
-	results = list( K.lr=K.lr , Adj.lr=Adj.lr , G=G , K=K , lambda.G=results.G$lambda , lambda.C=results.C$lambda , ig=ig )
-	class(results) <- 'nets'
-
-	results
 }
 
-plot.nets <- function( network , ... ){ 
-  	plot( network$ig , ... )
-}
-
-print.nets <- function( network ) {
-
-	cat( ' Number of Detected Edges: ' , sum( network$K.lr[ lower.tri( network$K.lr ) ]!=0 ) , ' (out of ' , length( network$K.lr[ lower.tri( network$K.lr ) ]!=0 ) , ' possible edges)\n' , sep='' )
-	cat( ' Granger Links: ' , sum( network$G[ col(network$G)!=row(network$G) ]!=0 ) , ' Contemporaneous Links: ' , sum( network$K[ lower.tri( network$K ) ]!=0 ) , '\n' , sep='')
-
-}
-
-nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='shooting'){
-	
-	M <- nrow(y)
-	N <- ncol(X)
-
-	toll <- 1e-6
-	maxiter <- 20
-
-	# check inputs
-	if( any( !is.finite(y) ) ){ stop('The response vector contains non finite values.') }
-	if( any( !is.finite(X) ) ){ stop('The data matrix contains non finite values.') }
-	if( lambda < 0 ){ stop('The ALASSO penalty is negative') }
-
-	# adaptive lasso weights
-	if( w=='adaptive' ) {
-		if( ncol(X) < nrow(y) ){
-			beta.pre <- coef( lm( y ~ 0+X ) )
-			w <- 1/abs(beta.pre)
-		}
-		else {
-			# TODO: ridge
-			w <- rep(1,N)
-		}
-	}
-	else {
-		w <- rep(1,N);
-	}
-
-	theta.init <- rep(0,N)
-	init <- 0
-
-	# call shooting algorithm
-        results <- .C(procedure, theta=as.double(rep(0,N)) , as.double(y) , as.double(X) , as.double(lambda) , as.double(w) , as.double(theta.init) , as.integer(M) , as.integer(N) , as.integer(verbose) , as.integer(init) )
-
-	# packaging results
-	results <- list( theta=results$theta , eps=(y-X%*%results$theta) )
-}
-
-nets.space <- function(y,lambda,verbose=FALSE)
-{
-	M <- nrow(y)
-	N <- ncol(y)
-	
-	results <- .C('space', theta=as.double(rep(0,N*(N-1)/2.0)) , ivar=as.double(rep(0,N)) , as.double(y), as.double(lambda), as.integer(M) , as.integer(N) , as.integer(verbose) )
-
-	K <- matrix( 0 , N , N )
-	diag(K) <- results$ivar
-	for( i in 2:N ){
-		for( j in 1:(i-1) ){
-			K[i,j] <- -results$theta[ (i-1)*(i-2)/2+j  ]*results$ivar[i]
-			K[j,i] <- K[i,j]
-		}
-	}
-
-	# packaging resuls
-	results <- list( K=K , results=results )
-}
-
-
-# SPARSE VAR ESTIMATION
-nets.var.sfit <- function(y,p=1,lambda=0,lambda.range=NULL,v=NULL,w='adaptive',verbose=FALSE,procedure='shooting'){
+# Partial Correlation Network
+nets.pc <- function(y,lambda.C){
 
 	T <- nrow(y)
 	N <- ncol(y)
-
-	# lambda range
-	if( is.null(lambda.range) )
-	{
-		lambda.range <- lambda
-		bic <- rep(0,1)
-	}
-	else
-	{
-		lambda.range <- rev( lambda.range )
-		bic <- rep( 0 , length(lambda.range) )
-	}
-
-	# THIS IS A BIT DUMB!
-	if(verbose) cat('Sparse VAR estimation: ')
-	stuff = list()
-	trace = matrix(0,length(lambda.range),N*N*p)
-	for( li in 1:length(lambda.range) )
-	{
-		if(verbose) cat('.')
-
-		bic[li] <- 0
-		A   <- array( 0 , dim=c(p,N,N) )
-		eps <- matrix( 0 , T , N )
-		for( i in 1:N )
-		{
-			Y <- matrix( 0 , T-p , 1 ) 
-			X <- matrix( 0 , T-p , p*N )
-			
-			Y[] <- y[ (p+1):T , i]
-			for( l in 1:p )
-			{
-				X[, ( (p-1)*N + p ):( p*N ) ] <- y[ (p+1-l):(T-l) , ]
-			}	
-		
-			results <- nets.alasso( Y , X , w=w, lambda=lambda.range[li] , verbose=verbose , procedure=procedure )
-
-			for( l in 1:p )
-			{
-				A[l,i,] <- results$theta[ ( (p-1)*N + p ):( p*N ) ]
-			}
-
-			eps[ (p+1):T ,i] <- results$eps
-
-			bic[li] <- bic[li] + T * log( sum(eps^2) ) + log(T) * sum( results$theta != 0 ); 
-		}
-
-		trace[li,] <- A[1:(N*N*p)]
-
-		stuff[[li]] <- list()
-		stuff[[li]]$A <- A
-		stuff[[li]]$eps <- eps
-	}
-	if(verbose) cat('\n')
-
-	opt <- (1:length(lambda.range))[ rank(bic,ties.method="first")==1 ]
-	lambda.hat <- lambda.range[ opt ]
-	A <- stuff[[ opt ]]$A
-	eps <- stuff[[ opt ]]$eps
-
-	for( li in 1:length(lambda.range) )
-	{
-		trace[li,] <- trace[li,] / (trace[length(lambda.range),]+0.01)
-	}
-
-	list( A=A , eps=eps , lambda=lambda.hat , trace=trace )
-}
-
-# SPARSE INVERSE COVARIANCE ESTIMATION Barigozzi Brownlees
-nets.cov.sfit <- function(y,lambda=NULL,lambda.range=NULL,w='adaptive',verbose=FALSE){
-
-	# 
-	T <- nrow(y)
-	N <- ncol(y)
-
-	# lambda range
-	if( is.null(lambda.range) )
-	{
-		lambda.range <- lambda
-		ic <- rep(0,1)
-	}
-	else
-	{
-		lambda.range <- rev( lambda.range )
-		ic <- rep( 0 , length(lambda.range) )
-	}
+	labels <- dimnames(y)[[2]]
+	if( is.null(labels) ) labels <- paste('V',1:N,sep='') dimnames(y)[[2]]
 
 	# ESTIMATE
 	if(verbose) cat('Sparse Inverse Covariance estimation: ')
 	stuff = list()
-	for( li in 1:length(lambda.range) )
-	{
-		if(verbose) cat('.')
 
-		# updating theta
-		results <- nets.space( y , lambda=lambda.range[li] , verbose=verbose )
-
-		stuff[[li]]   <- list()
-		stuff[[li]]$K <- results$K
-	}
-	if(verbose) cat('\n')
-
-	opt <- (1:length(lambda.range))[ rank(ic,ties.method="first")==1 ]
-	lambda.hat <- lambda.range[ opt ]
-	K <- stuff[[opt]]$K
-
-	# result
-	list( K=K, lambda=lambda.hat )
-}
-
-nets.cov.sfit.alt <- function(y,lambda=NULL,lambda.range=NULL,w='adaptive',verbose=FALSE,procedure='activeshooting'){
-
-	T <- nrow(y)
-	N <- ncol(y)
-
-	# lambda range
-	if( is.null(lambda.range) )
-	{
-		lambda.range <- lambda
-		bic <- rep(0,1)
-		bic <- rep( 0 , 1 )
-		rss <- rep( 0 , 1 )
-		nze <- rep( 0 , 1 )
-	}
-	else
-	{
-		lambda.range <- rev( lambda.range )
-		bic <- rep( 0 , length(lambda.range) )
-		rss <- rep( 0 , length(lambda.range) )
-		nze <- rep(0,length(lambda.range))
-	}
-
-	# ESTIMATE
-	if(verbose) cat('Sparse Inverse Covariance estimation: ')
-	stuff = list()
 	for( li in 1:length(lambda.range) )
 	{
 		if(verbose) cat('.')
@@ -311,4 +142,123 @@ nets.cov.sfit.alt <- function(y,lambda=NULL,lambda.range=NULL,w='adaptive',verbo
 
 	# result
 	list( K=K, lambda=lambda.hat )
+
 }
+
+# Granger Network
+nets.g <- function(y,p=1,lambda=0,v=NULL,w='adaptive',verbose=FALSE,procedure='shooting'){
+
+	T <- nrow(y)
+	N <- ncol(y)
+	labels <- dimnames(y)[[2]]
+	if( is.null(labels) ) labels <- paste('V',1:N,sep='')
+	
+	bic <- 0
+	A   <- array( 0 , dim=c(p,N,N) )
+	G   <- matrix( 0 , N , N )
+
+	for( i in 1:N )
+	{
+		Y <- matrix( 0 , T-p , 1 ) 
+		X <- matrix( 0 , T-p , p*N )
+		
+		Y[] <- y[ (p+1):T , i]
+		for( l in 1:p )
+		{
+			X[, ( (p-1)*N + p ):( p*N ) ] <- y[ (p+1-l):(T-l) , ]
+		}	
+	
+		results <- nets.alasso( Y , X , w=w, lambda=lambda , verbose=verbose , procedure=procedure )
+
+		for( l in 1:p )
+		{
+			A[l,i,] <- results$theta[ ( (p-1)*N + p ):( p*N ) ]
+		}
+
+		bic <- bic + T * log( sum(eps^2) ) + log(T) * sum( results$theta != 0 ); 
+	}
+	for( i in 1:p )
+	{
+		G <- G + A[l,,]
+	}
+
+	Adj <-(G!=0)*1
+
+	dimnames(G)   <- list(labels,labels)
+	dimnames(Adj) <- list(labels,labels)
+
+	network     <- list()
+	network$A   <- A
+	network$G   <- G
+	network$ic  <- bic
+	network$Adj <- Adj
+
+	network
+}
+
+nest.pc.search <- function(y){}
+
+nest.lrpc.search <- function(y){}
+
+nest.g.search <- function(y){}
+
+# Adaptive Lasso
+nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='shooting'){
+	
+	M <- nrow(y)
+	N <- ncol(X)
+
+	toll <- 1e-6
+	maxiter <- 20
+
+	# check inputs
+	if( any( !is.finite(y) ) ){ stop('The response vector contains non finite values.') }
+	if( any( !is.finite(X) ) ){ stop('The data matrix contains non finite values.') }
+	if( lambda < 0 ){ stop('The ALASSO penalty is negative') }
+
+	# adaptive lasso weights
+	if( w=='adaptive' ) {
+		if( ncol(X) < nrow(y) ){
+			beta.pre <- coef( lm( y ~ 0+X ) )
+			w <- 1/abs(beta.pre)
+		}
+		else {
+			# TODO: ridge
+			w <- rep(1,N)
+		}
+	}
+	else {
+		w <- rep(1,N);
+	}
+
+	theta.init <- rep(0,N)
+	init <- 0
+
+	# call shooting algorithm
+        results <- .C(procedure, theta=as.double(rep(0,N)) , as.double(y) , as.double(X) , as.double(lambda) , as.double(w) , as.double(theta.init) , as.integer(M) , as.integer(N) , as.integer(verbose) , as.integer(init) )
+
+	# packaging results
+	results <- list( theta=results$theta , eps=(y-X%*%results$theta) )
+}
+
+# SPACE Algorithm
+nets.space <- function(y,lambda,verbose=FALSE)
+{
+	M <- nrow(y)
+	N <- ncol(y)
+	
+	results <- .C('space', theta=as.double(rep(0,N*(N-1)/2.0)) , ivar=as.double(rep(0,N)) , as.double(y), as.double(lambda), as.integer(M) , as.integer(N) , as.integer(verbose) )
+
+	K <- matrix( 0 , N , N )
+	diag(K) <- results$ivar
+	for( i in 2:N ){
+		for( j in 1:(i-1) ){
+			K[i,j] <- -results$theta[ (i-1)*(i-2)/2+j  ]*results$ivar[i]
+			K[j,i] <- K[i,j]
+		}
+	}
+
+	# packaging resuls
+	results <- list( K=K , results=results )
+}
+
