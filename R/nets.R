@@ -2,7 +2,6 @@
 .packageName <- "nets"
 
 .First.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
-
 .onLoad.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
 
 nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=NULL , verbose=FALSE ){ 
@@ -25,7 +24,7 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=NULL , ve
 	V(ig)$label <- V(ig)$name	
 	network$ig <- ig
 
-	# type
+	# network characteristics 
 	network$type <- type
 	network$T    <- nrow(y)
 	network$N    <- ncol(y)
