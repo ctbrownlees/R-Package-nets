@@ -4,7 +4,7 @@
 .First.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
 .onLoad.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
 
-nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=NULL , verbose=FALSE ){ 
+nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE ){ 
 
 	# control for errors
 	
@@ -57,7 +57,7 @@ print.nets <- function( network , ... ) {
 }
 
 # Long Run Partial Correlation Network
-.nets.lrpc <- function(y,lambda,verbose){
+.nets.lrpc <- function(y,p,lambda,verbose){
 
 	y <- as.matrix(y)
 	T <- nrow(y)
@@ -68,9 +68,9 @@ print.nets <- function( network , ... ) {
 	network.G <- .nets.g(y,p=p,lambda=lambda[1],verbose=verbose)
 
 	# C
-	eps <- results.G$eps 
-	results.C <- .nets.pc(eps,lambda=lambda[2],verbose=verbose)
-	K <- results.C$K
+	eps <- network.G$eps 
+	network$C <- .nets.pc(eps,lambda=lambda[2],verbose=verbose)
+	K <- network$C
 
 	# put results together
 	G <- matrix(0,N,N)
@@ -79,7 +79,7 @@ print.nets <- function( network , ... ) {
 
 	KLR <- t(G) %*% K %*% G
 	Adj <- (KLR != 0)*1
-	Adj[ row(Adj.lr)==col(Adj.lr) ] <- 0
+	Adj[ row(Adj)==col(Adj) ] <- 0
 
 	# packaging results
 	dimnames(KLR) <- list(labels,labels)
@@ -168,14 +168,14 @@ print.nets <- function( network , ... ) {
 	network
 }
 
-.nest.pc.search <- function(y,lambda,verbose){
+.nets.pc.search <- function(y,lambda,verbose){
 
-	if( !is.vector(lambda) ) return( .nest.pc(y,lambda,verbose) )
+	if( !is.vector(lambda) ) return( .nets.pc(y,lambda,verbose) )
 
 	network.list <- list()
 
 	for( i in 1:length(lambda) ) {
-		network.list[[i]] <- .nest.pc(y,lambda,verbose)
+		network.list[[i]] <- .nets.pc(y,lambda,verbose)
 	}	
 }
 

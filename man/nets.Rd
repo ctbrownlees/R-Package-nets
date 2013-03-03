@@ -1,8 +1,10 @@
 \name{nets}
 \alias{nets}
+\alias{print.nets}
+\alias{plot.nets}
 \title{Network Estimation for Time Series}
 \description{`nets` is used to fit sparse long run partial correlation networks for time series using the NETS algorithm as well as other types of sparse networks.}
-\usage{ nets( y , type='lrpc' , algorithm='default' , p=1 , lambda=NULL , verbose=FALSE ) }
+\usage{ nets( y , type='lrpc' , algorithm='default' , p=1 , lambda , verbose=FALSE ) }
 \arguments{
 \item{y}{data, an T x N matrix, each column being a data time series.}
 \item{type}{network type: Long Run Partial Correlation (lrpc), Partial Correlation (pc) or Granger (g)}
