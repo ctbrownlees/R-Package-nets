@@ -34,26 +34,25 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shr
 	network
 }
 
-plot.nets <- function( network , ... ){ 
-  	plot( network$ig , ... )
+plot.nets <- function( x , ... ){ 
+  	plot( x$ig , ... )
 }
 
-print.nets <- function( network , ... ) {
+print.nets <- function( x , ... ) {
 
 	labels <- list( lrpc='Long Run Partial Correlation' , pc='Partial Correlation' , g='Granger' )
 
-	if( network$type=='g' ){ 
-		nedge <- sum( network$Adj ); 
-		medge <- network$N^2 
+	if( x$type=='g' ){ 
+		nedge <- sum( x$Adj ); 
+		medge <- x$N^2 
 	}  
 	else { 
-		nedge <- sum( network$Adj[ lower.tri(network$Adj) ]!=0 ); 
-		medge <- ((network$N-1)*network$N)/2.0
+		nedge <- sum( x$Adj[ lower.tri(x$Adj) ]!=0 ); 
+		medge <- ((x$N-1)*x$N)/2.0
 	}
 
-	cat( ' ' , labels[[ network$type ]] , ' Network\n' , sep='' )
+	cat( ' ' , labels[[ x$type ]] , ' Network\n' , sep='' )
 	cat( ' Number of Detected Edges: ' , nedge , ' (' , round( (nedge/medge)*100 , 1 ) , '%)\n' , sep='' )
-
 }
 
 # Long Run Partial Correlation Network
@@ -68,25 +67,35 @@ print.nets <- function( network , ... ) {
 	network.G <- .nets.g(y,p=p,lambda=lambda[1],verbose=verbose)
 
 	# C
-	eps <- network.G$eps 
-	network$C <- .nets.pc(eps,lambda=lambda[2],verbose=verbose)
-	K <- network$C
+	network.C <- .nets.pc(network.G$eps,lambda=lambda[2],verbose=verbose)
 
 	# put results together
+	C <- network.C$C
 	G <- matrix(0,N,N)
 	G[ col(G)==row(G) ] <- 1
-	G <- G - network$G
+	G <- G - network.G$G
 
-	KLR <- t(G) %*% K %*% G
+	KLR <- t(G) %*% C %*% G
 	Adj <- (KLR != 0)*1
 	Adj[ row(Adj)==col(Adj) ] <- 0
+
+	LRPC  <- diag(1/sqrt(diag(KLR))) %*% KLR %*% diag(1/sqrt(diag(KLR)))
+	LRPC[ row(LRPC)!=col(LRPC) ] <- -LRPC[ row(LRPC)!=col(LRPC) ] 
 
 	# packaging results
 	dimnames(KLR) <- list(labels,labels)
 	dimnames(Adj) <- list(labels,labels)
 	dimnames(G)   <- list(labels,labels)
-	dimnames(K)   <- list(labels,labels)
+	dimnames(KLR) <- list(labels,labels)
 
+	network      <- list()
+	network$C    <- C
+	network$G    <- G
+	network$KLR  <- KLR
+	network$Adj  <- Adj
+	network$LRPC <- LRPC 
+
+	network
 }
 
 # Partial Correlation Network
@@ -132,6 +141,7 @@ print.nets <- function( network , ... ) {
 	bic <- 0
 	A   <- array( 0 , dim=c(p,N,N) )
 	G   <- matrix( 0 , N , N )
+	eps <- matrix( 0 , T-p , N )
 
 	for( i in 1:N )	{
 		Y <- matrix( 0 , T-p , 1 ) 
@@ -147,8 +157,8 @@ print.nets <- function( network , ... ) {
 		for( l in 1:p ){
 			A[l,i,] <- results$theta[ ( (p-1)*N + p ):( p*N ) ]
 		}
-
-		#bic <- bic + T * log( sum(eps^2) ) + log(T) * sum( results$theta != 0 ); 
+		
+		eps[,i] <- results$eps
 	}
 	for( i in 1:p ) {
 		G <- G + A[l,,]
@@ -164,20 +174,12 @@ print.nets <- function( network , ... ) {
 	network$G   <- G
 	network$bic <- bic
 	network$Adj <- Adj
+	network$eps <- eps
 
 	network
 }
 
-.nets.pc.search <- function(y,lambda,verbose){
-
-	if( !is.vector(lambda) ) return( .nets.pc(y,lambda,verbose) )
-
-	network.list <- list()
-
-	for( i in 1:length(lambda) ) {
-		network.list[[i]] <- .nets.pc(y,lambda,verbose)
-	}	
-}
+.nets.pc.search <- function(y,lambda,verbose){}
 
 .nest.lrpc.search <- function(y){}
 

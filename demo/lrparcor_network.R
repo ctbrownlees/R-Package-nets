@@ -50,22 +50,15 @@ eps <- mvrnorm(T, rep(0,N) , solve(SigInv) )
 for( t in 2:T ){ y[t,] = A %*% y[t-1,] + eps[t,] }
 
 # nets procedure
-network <- nets(y,lambda.G.range=seq(0.5,20,0.5),lambda.C.range=seq(0.5,30,0.5))
+network <- nets(y,lambda=c(1,20))
 
 # plot
 plot( network )
 
 #
-print( cbind( AdjLR , rep(NA,N) , network$Adj.lr ) )
+print( cbind( AdjLR , rep(NA,N) , network$Adj ) )
 cat('\n')
 
-print( cbind( round(K.lr,2) , rep(NA,N) , round(network$K.lr,2) ) )
+print( cbind( round(K.lr,2) , rep(NA,N) , round(network$KLR,2) ) )
 cat('\n')
-
-mse <- mnorm( K.lr - network$K.lr ) 
-ty1 <- mean( (network$Adj.lr[ row(AdjLR) < col(AdjLR)])[ AdjLR[ row(AdjLR) < col(AdjLR) ]==0 ] != 0 )
-pow <- mean( (network$Adj.lr[ row(AdjLR) < col(AdjLR)])[ AdjLR[ row(AdjLR) < col(AdjLR) ]!=0 ] != 0 )
-pos <- min(eigen( network$K.lr )$values)> 1e-6
-
-cat( 'mse:' , mse , 'ty1:' , ty1 , 'pow:' , pow , 'pos:' , pos , 'lambda.G' , network$lambda.G , 'lambda.C' , network$lambda.C , '\n' )
 
