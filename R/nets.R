@@ -59,6 +59,7 @@ print.nets <- function( network ) {
 # Long Run Partial Correlation Network
 nets.lrpc <- function(y,lambda,verbose){
 
+	y <- as.matrix(y)
 	T <- nrow(y)
 	N <- ncol(y)
 	labels <- dimnames(y)[[2]]
@@ -91,6 +92,7 @@ nets.lrpc <- function(y,lambda,verbose){
 # Partial Correlation Network
 nets.pc <- function(y,lambda,verbose){
 
+	y <- as.matrix(y)
 	T <- nrow(y)
 	N <- ncol(y)
 	labels <- dimnames(y)[[2]]
@@ -99,17 +101,21 @@ nets.pc <- function(y,lambda,verbose){
 	results <- nets.space(y,lambda,verbose)	
 	bic <- 0
 
-	C <- results$K 
+	C   <- results$K 
 	Adj <-(C!=0)*1
 	Adj[ row(Adj)==col(Adj) ] <- 0
+	PC  <- diag(1/sqrt(diag(results$K))) %*% results$K %*% diag(1/sqrt(diag(results$K)))
+	PC[ row(PC)!=col(PC) ] <- -PC[ row(PC)!=col(PC) ] 
 
 	dimnames(C)   <- list(labels,labels)
 	dimnames(Adj) <- list(labels,labels)
+	dimnames(PC)  <- list(labels,labels)
 
 	network     <- list()
 	network$C   <- C
 	network$bic <- bic
 	network$Adj <- Adj
+	network$PC  <- PC 
 
 	network
 }
@@ -117,6 +123,7 @@ nets.pc <- function(y,lambda,verbose){
 # Granger Network
 nets.g <- function(y,p=1,lambda=0,v=NULL,w='adaptive',verbose=FALSE,procedure='shooting'){
 
+	y <- as.matrix(y)
 	T <- nrow(y)
 	N <- ncol(y)
 	labels <- dimnames(y)[[2]]
@@ -126,28 +133,24 @@ nets.g <- function(y,p=1,lambda=0,v=NULL,w='adaptive',verbose=FALSE,procedure='s
 	A   <- array( 0 , dim=c(p,N,N) )
 	G   <- matrix( 0 , N , N )
 
-	for( i in 1:N )
-	{
+	for( i in 1:N )	{
 		Y <- matrix( 0 , T-p , 1 ) 
 		X <- matrix( 0 , T-p , p*N )
 		
 		Y[] <- y[ (p+1):T , i]
-		for( l in 1:p )
-		{
+		for( l in 1:p ){
 			X[, ( (p-1)*N + p ):( p*N ) ] <- y[ (p+1-l):(T-l) , ]
 		}	
 	
 		results <- nets.alasso( Y , X , w=w, lambda=lambda , verbose=verbose , procedure=procedure )
 
-		for( l in 1:p )
-		{
+		for( l in 1:p ){
 			A[l,i,] <- results$theta[ ( (p-1)*N + p ):( p*N ) ]
 		}
 
-		bic <- bic + T * log( sum(eps^2) ) + log(T) * sum( results$theta != 0 ); 
+		#bic <- bic + T * log( sum(eps^2) ) + log(T) * sum( results$theta != 0 ); 
 	}
-	for( i in 1:p )
-	{
+	for( i in 1:p ) {
 		G <- G + A[l,,]
 	}
 
@@ -165,7 +168,16 @@ nets.g <- function(y,p=1,lambda=0,v=NULL,w='adaptive',verbose=FALSE,procedure='s
 	network
 }
 
-nest.pc.search <- function(y){}
+nest.pc.search <- function(y,lambda,verbose){
+
+	if( !is.vector(lambda) ) return( nest.pc(y,lambda,verbose) )
+
+	network.list <- list()
+
+	for( i in 1:length(lambda) ) {
+		network.list[[i]] <- nest.pc(y,lambda,verbose)
+	}	
+}
 
 nest.lrpc.search <- function(y){}
 
@@ -218,6 +230,7 @@ nets.space <- function(y,lambda,verbose=FALSE)
 	
 	results <- .C('space', theta=as.double(rep(0,N*(N-1)/2.0)) , ivar=as.double(rep(0,N)) , as.double(y), as.double(lambda), as.integer(M) , as.integer(N) , as.integer(verbose) )
 
+	# packaging results
 	K <- matrix( 0 , N , N )
 	diag(K) <- results$ivar
 	for( i in 2:N ){
@@ -227,7 +240,6 @@ nets.space <- function(y,lambda,verbose=FALSE)
 		}
 	}
 
-	# packaging resuls
-	results <- list( K=K , results=results )
+	list( K=K , results=results )
 }
 
