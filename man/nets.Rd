@@ -11,18 +11,10 @@
 \item{lambda}{shrinkage parameter}
 \item{verbose}{extra output messages} }
 \details{Details}
-\value{
-The return value of the nets routine is a network object.
-}
+\value{The return value of the nets routine is a network object.}
 \references{
 Barigozzi, M. and Brownlees, C. (2012) NETS: Network Estimation for Time Series
 }
 \author{Christian Brownlees}
-\note{
-}
-\seealso{
-}
-\examples{
-}
 \keyword{network}
 \keyword{timeseries}

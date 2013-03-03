@@ -10,9 +10,9 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=NULL , ve
 	
 	# redirect to the appropriate network estimation routine
 	network <- switch( type ,
-		lrpc=nets.lrpc( y , p , lambda , verbose ),
-		pc=nets.pc( y , lambda , verbose ),
-		g=nets.g( y , p , lambda , verbose ) )
+		lrpc=.nets.lrpc( y , p , lambda , verbose ),
+		pc=.nets.pc( y , lambda , verbose ),
+		g=.nets.g( y , p , lambda , verbose ) )
 
 	# prepare igraph stuff
 	if( type=='lrpc' | type=='pc' ){
@@ -57,7 +57,7 @@ print.nets <- function( network , ... ) {
 }
 
 # Long Run Partial Correlation Network
-nets.lrpc <- function(y,lambda,verbose){
+.nets.lrpc <- function(y,lambda,verbose){
 
 	y <- as.matrix(y)
 	T <- nrow(y)
@@ -65,11 +65,11 @@ nets.lrpc <- function(y,lambda,verbose){
 	labels <- dimnames(y)[[2]]
 
 	# G  
-	network.G <- nets.g(y,p=p,lambda=lambda[1],verbose=verbose)
+	network.G <- .nets.g(y,p=p,lambda=lambda[1],verbose=verbose)
 
 	# C
 	eps <- results.G$eps 
-	results.C <- nets.cov.sfit.alt(eps,lambda=lambda[2],verbose=verbose)
+	results.C <- .nets.pc(eps,lambda=lambda[2],verbose=verbose)
 	K <- results.C$K
 
 	# put results together
@@ -90,7 +90,7 @@ nets.lrpc <- function(y,lambda,verbose){
 }
 
 # Partial Correlation Network
-nets.pc <- function(y,lambda,verbose){
+.nets.pc <- function(y,lambda,verbose){
 
 	y <- as.matrix(y)
 	T <- nrow(y)
@@ -98,7 +98,7 @@ nets.pc <- function(y,lambda,verbose){
 	labels <- dimnames(y)[[2]]
 	if( is.null(labels) ) labels <- paste('V',1:N,sep='') 
 
-	results <- nets.space(y,lambda,verbose)	
+	results <- .nets.space(y,lambda,verbose)	
 	bic <- 0
 
 	C   <- results$K 
@@ -121,7 +121,7 @@ nets.pc <- function(y,lambda,verbose){
 }
 
 # Granger Network
-nets.g <- function(y,p=1,lambda=0,v=NULL,w='adaptive',verbose=FALSE,procedure='shooting'){
+.nets.g <- function(y,p=1,lambda=0,v=NULL,w='adaptive',verbose=FALSE,procedure='shooting'){
 
 	y <- as.matrix(y)
 	T <- nrow(y)
@@ -142,7 +142,7 @@ nets.g <- function(y,p=1,lambda=0,v=NULL,w='adaptive',verbose=FALSE,procedure='s
 			X[, ( (p-1)*N + p ):( p*N ) ] <- y[ (p+1-l):(T-l) , ]
 		}	
 	
-		results <- nets.alasso( Y , X , w=w, lambda=lambda , verbose=verbose , procedure=procedure )
+		results <- .nets.alasso( Y , X , w=w, lambda=lambda , verbose=verbose , procedure=procedure )
 
 		for( l in 1:p ){
 			A[l,i,] <- results$theta[ ( (p-1)*N + p ):( p*N ) ]
@@ -168,23 +168,23 @@ nets.g <- function(y,p=1,lambda=0,v=NULL,w='adaptive',verbose=FALSE,procedure='s
 	network
 }
 
-nest.pc.search <- function(y,lambda,verbose){
+.nest.pc.search <- function(y,lambda,verbose){
 
-	if( !is.vector(lambda) ) return( nest.pc(y,lambda,verbose) )
+	if( !is.vector(lambda) ) return( .nest.pc(y,lambda,verbose) )
 
 	network.list <- list()
 
 	for( i in 1:length(lambda) ) {
-		network.list[[i]] <- nest.pc(y,lambda,verbose)
+		network.list[[i]] <- .nest.pc(y,lambda,verbose)
 	}	
 }
 
-nest.lrpc.search <- function(y){}
+.nest.lrpc.search <- function(y){}
 
-nest.g.search <- function(y){}
+.nest.g.search <- function(y){}
 
 # Adaptive Lasso
-nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='shooting'){
+.nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='shooting'){
 	
 	M <- nrow(y)
 	N <- ncol(X)
@@ -223,7 +223,7 @@ nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='shootin
 }
 
 # SPACE Algorithm
-nets.space <- function(y,lambda,verbose=FALSE)
+.nets.space <- function(y,lambda,verbose=FALSE)
 {
 	M <- nrow(y)
 	N <- ncol(y)
