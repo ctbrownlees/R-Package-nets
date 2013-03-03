@@ -6,6 +6,6 @@ Date: 2012-09-03
 Author: Christian Brownlees
 Maintainer: Christian Brownlees <christian.brownlees@upf.edu>
 Depends: igraph
-Description: The NETS packagae provides routines for the estimation of sparse long run partial correlation networks for time series data 
+Description: The NETS package provides routines for the estimation of sparse long run partial correlation networks for time series data 
 License: GPL 
 LazyLoad: yes

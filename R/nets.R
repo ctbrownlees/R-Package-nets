@@ -1,9 +1,6 @@
 
 .packageName <- "nets"
 
-.First.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
-.onLoad.lib <- function(lib, pkg){ library.dynam("nets", pkg, lib) }
-
 nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE ){ 
 
 	# control for errors
