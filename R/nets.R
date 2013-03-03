@@ -38,7 +38,7 @@ plot.nets <- function( network , ... ){
   	plot( network$ig , ... )
 }
 
-print.nets <- function( network ) {
+print.nets <- function( network , ... ) {
 
 	labels <- list( lrpc='Long Run Partial Correlation' , pc='Partial Correlation' , g='Granger' )
 
@@ -216,7 +216,7 @@ nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='shootin
 	init <- 0
 
 	# call shooting algorithm
-        results <- .C(procedure, theta=as.double(rep(0,N)) , as.double(y) , as.double(X) , as.double(lambda) , as.double(w) , as.double(theta.init) , as.integer(M) , as.integer(N) , as.integer(verbose) , as.integer(init) )
+        results <- .C(procedure, theta=as.double(rep(0,N)) , as.double(y) , as.double(X) , as.double(lambda) , as.double(w) , as.double(theta.init) , as.integer(M) , as.integer(N) , as.integer(verbose) , as.integer(init) , PACKAGE="nets" )
 
 	# packaging results
 	results <- list( theta=results$theta , eps=(y-X%*%results$theta) )
@@ -228,7 +228,7 @@ nets.space <- function(y,lambda,verbose=FALSE)
 	M <- nrow(y)
 	N <- ncol(y)
 	
-	results <- .C('space', theta=as.double(rep(0,N*(N-1)/2.0)) , ivar=as.double(rep(0,N)) , as.double(y), as.double(lambda), as.integer(M) , as.integer(N) , as.integer(verbose) )
+	results <- .C('space', theta=as.double(rep(0,N*(N-1)/2.0)) , ivar=as.double(rep(0,N)) , as.double(y), as.double(lambda), as.integer(M) , as.integer(N) , as.integer(verbose) , PACKAGE="nets" )
 
 	# packaging results
 	K <- matrix( 0 , N , N )

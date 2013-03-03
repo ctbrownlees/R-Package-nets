@@ -1,8 +1,6 @@
 
 #include <R.h>
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <math.h>
 
 // utility
@@ -91,9 +89,8 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 		for( j=0; j<N; ++j ) delta += (theta_cur[j]-theta[j])*(theta_cur[j]-theta[j]); 
 		delta = sqrt( delta );	
 		if( delta < toll ) break;
-#ifdef NETS_DEVEL
-		printf("iter: %3d toll: %f\n",iter+1,delta);
-#endif
+
+		Rprintf("iter: %3d toll: %f\n",iter+1,delta);
 	}
 
 	// clean up	
@@ -129,7 +126,7 @@ void activeshooting(double *theta, double *y, double *x, double *l, double *w, d
 	N = *n;
 	lambda = *l;
 
-	if( verbose ) printf("\nActive Shooting Algorithm!\n");
+	if( verbose ) Rprintf("\nActive Shooting Algorithm!\n");
 
 	// allocate stuff
 	X = Calloc(M,double*);
@@ -152,10 +149,10 @@ void activeshooting(double *theta, double *y, double *x, double *l, double *w, d
 
 	// init
 	n_active = 0;
-	if( verbose ) printf(" > initialising parameters");
+	if( verbose ) Rprintf(" > initialising parameters");
 	for( j=0; j<N; ++j )
 	{
-		if( verbose ) if( (j % 10)==0 ) printf(".");
+		if( verbose ) if( (j % 10)==0 ) Rprintf(".");
 
 		sum = 0.0;
 		for( i=0; i<M; ++i ) sum += y[i]*X[i][j];
@@ -167,7 +164,7 @@ void activeshooting(double *theta, double *y, double *x, double *l, double *w, d
 		}
 		else theta[j] = 0.0;
 	}
-	if( verbose ) printf("\n");
+	if( verbose ) Rprintf("\n");
 
 	// iterate
 	for( out_iter=0 ; out_iter<maxiter ; ++out_iter ) {
@@ -180,7 +177,7 @@ void activeshooting(double *theta, double *y, double *x, double *l, double *w, d
 			n_active    += (int) (theta[j]!=0);
 		}
 
-		if(verbose) printf(" > outer iter: %d %d active parameters out of %d\n",out_iter+1,n_active,N);
+		if(verbose) Rprintf(" > outer iter: %d %d active parameters out of %d\n",out_iter+1,n_active,N);
 
 		// Active Set UPDATE
 		for( in_iter=0 ; in_iter<maxiter ; ++in_iter ) {
@@ -244,7 +241,7 @@ void activeshooting(double *theta, double *y, double *x, double *l, double *w, d
 		delta = 0.0;
 		for( j=0; j<N; ++j ) delta += (theta_cur[j]-theta[j])*(theta_cur[j]-theta[j]); 
 		delta = sqrt( delta );	
-		if(verbose) printf(" > toll: %f\n",delta);
+		if(verbose) Rprintf(" > toll: %f\n",delta);
 
 		if( delta < toll ) break;
 	}
@@ -284,7 +281,7 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 	N = *n;
 	lambda = *l;
 
-	if( verbose ) printf("\nSPaCE Algorithm!\n");
+	if( verbose ) Rprintf("\nSPaCE Algorithm!\n");
 
 	// allocate stuff
 	Y = Calloc(M,double*);
@@ -373,7 +370,7 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 			delta = 0.0;
 			for( i=1; i<N; ++i ) for( j=0; j<i-1; ++j ) delta += (theta_cur[i*(i-1)/2+j]-theta[i*(i-1)/2+j])*(theta_cur[i*(i-1)/2+j]-theta[i*(i-1)/2+j]); 
 			delta = sqrt( delta );	
-			if(verbose) printf("iter: %3d toll: %f\n",iter_in+1,delta);
+			if(verbose) Rprintf("iter: %3d toll: %f\n",iter_in+1,delta);
 			if( delta < toll ) break;
 		}
 

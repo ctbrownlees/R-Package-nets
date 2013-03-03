@@ -1,42 +1,28 @@
 \name{nets}
 \alias{nets}
 \title{Network Estimation for Time Series}
-\description{`nets` is used to fit sparse long run partial correlation networks for time series using the NETS algorithm.}
-\usage{
-nets(y,p,lambda.G,lambda.C)
-}
+\description{`nets` is used to fit sparse long run partial correlation networks for time series using the NETS algorithm as well as other types of sparse networks.}
+\usage{ nets( y , type='lrpc' , algorithm='default' , p=1 , lambda=NULL , verbose=FALSE ) }
 \arguments{
-\item{y}{data, an T x n matrix, each column being a data time series.}
-\item{p}{VAR order.}
-}
-\details{
-Details
-%%  ~~ If necessary, more details than the description above ~~
-}
+\item{y}{data, an T x N matrix, each column being a data time series.}
+\item{type}{network type: Long Run Partial Correlation (lrpc), Partial Correlation (pc) or Granger (g)}
+\item{p}{VAR order (for Granger)}
+\item{algorithm}{Optimization algorithm to be used.}
+\item{lambda}{shrinkage parameter}
+\item{verbose}{extra output messages} }
+\details{Details}
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+The return value of the nets routine is a network object.
 }
 \references{
 Barigozzi, M. and Brownlees, C. (2012) NETS: Network Estimation for Time Series
 }
-\author{
-Christian Brownlees
-}
+\author{Christian Brownlees}
 \note{
-%%  ~~further notes~~
 }
-
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-
-1+1
-
 }
 \keyword{network}
 \keyword{timeseries}
