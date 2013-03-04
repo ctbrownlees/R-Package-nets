@@ -1,11 +1,11 @@
 Package: nets
 Type: Package
 Title: Network Estimation for Time Series
-Version: 0.1
-Date: 2012-09-03
+Version: 0.2
+Date: 2013-03-03
 Author: Christian Brownlees
 Maintainer: Christian Brownlees <christian.brownlees@upf.edu>
 Depends: igraph
-Description: The NETS package provides routines for the estimation of sparse long run partial correlation networks for time series data 
+Description: The package provides routines for the estimation and analysis of sparse networks for time series data 
 License: GPL 
 LazyLoad: yes

@@ -4,10 +4,13 @@
 nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE ){ 
 
 	# control for errors
+	if( !any( type==c('lrpc','pc','g') ) ){
+		stop("The 'type' parameter has to be set to either 'lrpc', 'pc' or 'g'")
+	}
 	
 	# redirect to the appropriate network estimation routine
 	network <- switch( type ,
-		lrpc=.nets.lrpc( y , p , lambda , verbose ),
+		lrpc=.nets.lrpc.search( y , p , lambda , verbose ),
 		pc=.nets.pc( y , lambda , verbose ),
 		g=.nets.g( y , p , lambda , verbose ) )
 
@@ -176,7 +179,11 @@ print.nets <- function( x , ... ) {
 	network
 }
 
-.nets.pc.search <- function(y,lambda,verbose){}
+.nets.pc.search <- function(y,lambda,verbose){
+
+	if( length(lambda) == 1 ) return( .nets.pc(y,lambda,verbose) )
+
+}
 
 .nest.lrpc.search <- function(y){}
 

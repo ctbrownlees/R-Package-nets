@@ -7,7 +7,7 @@
 \tabular{ll}{
 Package: \tab nets\cr
 Type: \tab Package\cr
-Version: \tab 0.1\cr
+Version: \tab 0.2\cr
 Date: \tab 2013-03-03\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr

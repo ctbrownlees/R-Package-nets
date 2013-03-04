@@ -3,6 +3,8 @@
 
 #include <math.h>
 
+char prog_indicator[] = {'-','\\','|','/','-','\\','|','/'};
+
 // utility
 double sgn(double x) {
     return (0 < x) - (x < 0);
@@ -64,7 +66,9 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 	}
 
 	// iterate
+	Rprintf("\r Progress: ");
 	for( iter=0 ; iter<maxiter ; ++iter ) {
+		Rprintf("\b%c",prog_indicator[ iter % 7 ]);
 
 		for( j=0; j<N; ++j ) theta_cur[j] = theta[j];
 
@@ -90,8 +94,10 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 		delta = sqrt( delta );	
 		if( delta < toll ) break;
 
-		Rprintf("iter: %3d toll: %f\n",iter+1,delta);
+		//Rprintf("iter: %3d toll: %f",iter+1,delta);
+		//Rprintf("\b");
 	}
+	Rprintf("\r done!          ");
 
 	// clean up	
 	for(i = 0; i < M; i++){ Free(X[i]); }
