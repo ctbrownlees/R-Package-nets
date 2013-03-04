@@ -66,7 +66,7 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 	}
 
 	// iterate
-	Rprintf("\r Progress: ");
+	Rprintf("\r Estimating Network:  ");
 	for( iter=0 ; iter<maxiter ; ++iter ) {
 		Rprintf("\b%c",prog_indicator[ iter % 7 ]);
 
@@ -93,11 +93,8 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 		for( j=0; j<N; ++j ) delta += (theta_cur[j]-theta[j])*(theta_cur[j]-theta[j]); 
 		delta = sqrt( delta );	
 		if( delta < toll ) break;
-
-		//Rprintf("iter: %3d toll: %f",iter+1,delta);
-		//Rprintf("\b");
 	}
-	Rprintf("\r done!          ");
+	Rprintf("\bdone!");
 
 	// clean up	
 	for(i = 0; i < M; i++){ Free(X[i]); }

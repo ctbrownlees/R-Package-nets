@@ -12,7 +12,7 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shr
 	network <- switch( type ,
 		lrpc=.nets.lrpc.search( y , p , lambda , verbose ),
 		pc=.nets.pc( y , lambda , verbose ),
-		g=.nets.g( y , p , lambda , verbose ) )
+		g=.nets.g.search( y , p , lambda , verbose ) )
 
 	# prepare igraph stuff
 	if( type=='lrpc' | type=='pc' ){
@@ -159,7 +159,10 @@ print.nets <- function( x , ... ) {
 		}
 		
 		eps[,i] <- results$eps
+		bic <- bic + T*log( (1/(T-1))*sum(eps[,i]^2) ) + sum( results$theta !=0 )*log(T)
 	}
+	cat('\n')
+
 	for( i in 1:p ) {
 		G <- G + A[l,,]
 	}
@@ -185,9 +188,29 @@ print.nets <- function( x , ... ) {
 
 }
 
-.nest.lrpc.search <- function(y){}
+.nets.lrpc.search <- function(y){}
 
-.nest.g.search <- function(y){}
+.nets.g.search <- function(y,p,lambda,verbose){
+
+	if( length(lambda) == 1 ){
+		return( .nets.g(y,lambda,verbose) )
+	}
+
+	bic <- rep(0,length(lambda))
+	networks <- list()
+
+	for( i in 1:length(lambda) ) {
+		networks[[i]] <- .nets.g(y,p,lambda[i],verbose)
+		bic[i] <- networks[[i]]$bic
+	}
+
+	pick <- max( (1:length(lambda))[ min(bic)==bic ] )
+	network <- networks[[ pick ]]
+	network$idx   <- pick
+	network$trace <- bic
+
+	network
+}
 
 # Adaptive Lasso
 .nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='shooting'){
