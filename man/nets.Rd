@@ -10,7 +10,7 @@
 \item{type}{network type: Long Run Partial Correlation (lrpc), Partial Correlation (pc) or Granger (g)}
 \item{p}{VAR order (for Granger)}
 \item{algorithm}{Optimization algorithm to be used.}
-\item{lambda}{shrinkage parameter}
+\item{lambda}{shrinkage parameter(s)}
 \item{verbose}{extra output messages} }
 \details{The nets procedure can be used to fit long run partial correlation networks, partial correlation and Granger networks.}
 \value{The return value of the nets method is a network object.}
@@ -38,7 +38,7 @@ for( t in 2:T ){
 	}
 }
 
-network <- nets(y,type='g',lambda=1,verbose=TRUE)
+network <- nets(y,type='g',lambda=1:5,verbose=TRUE)
 
 print( cbind( A , rep(NA,N) , round( network$A[1,,] , 2 ) ) )
 
