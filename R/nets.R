@@ -1,20 +1,32 @@
 
 .packageName <- "nets"
 
-nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE ){ 
+nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , select='bic' , verbose=FALSE ){ 
 
-	# control for errors
+	# input check
 	if( !any( type==c('lrpc','pc','g') ) ){
 		stop("The 'type' parameter has to be set to either 'lrpc', 'pc' or 'g'")
+	}
+	if( !is.data.frame(y) & !is.matrix(y) ){
+		stop("The 'y' parameter has to be a TxN matrix or a data.frame of data")
+	}
+	if( p<0 ){
+		stop("The 'p' parameter has to be nonnegative")
+	}
+	if( !any( select==c('aic','bic') ) ){
+		stop("The 'type' parameter has to be set to either 'aic' or 'bic'")
+	}
+	if( !is.logical(verbose) ){
+		stop("The 'verbose' parameter has to be TRUE or FALSE")
 	}
 	
 	# redirect to the appropriate network estimation routine
 	network <- switch( type ,
-		lrpc=.nets.lrpc.search( y , p , lambda , verbose ),
-		pc=.nets.pc( y , lambda , verbose ),
-		g=.nets.g.search( y , p , lambda , verbose ) )
+		lrpc=.nets.lrpc.search( y , p , lambda , select , verbose ),
+		pc=.nets.pc.search( y , lambda , select , verbose ),
+		g=.nets.g.search( y , p , lambda , select , verbose ) )
 
-	# prepare igraph stuff
+	# prepare the igraph stuff
 	if( type=='lrpc' | type=='pc' ){
 		ig <- graph.adjacency( network$Adj , mode='undirected')
 	}
@@ -108,23 +120,38 @@ print.nets <- function( x , ... ) {
 	if( is.null(labels) ) labels <- paste('V',1:N,sep='') 
 
 	results <- .nets.space(y,lambda,verbose)	
-	bic <- 0
+	crit <- list( bic=0 , aic=0 )	
 
 	C   <- results$K 
 	Adj <-(C!=0)*1
 	Adj[ row(Adj)==col(Adj) ] <- 0
 	PC  <- diag(1/sqrt(diag(results$K))) %*% results$K %*% diag(1/sqrt(diag(results$K)))
-	PC[ row(PC)!=col(PC) ] <- -PC[ row(PC)!=col(PC) ] 
+	PC[ row(PC)!=col(PC) ] <- -PC[ row(PC)!=col(PC) ]
+
+	# measure goodness of fit
+	# TODO: INNEFICIENT!!! Check the matrix algebra to simplify this!
+	BETA <- matrix(0,N,N)
+	for( i in 1:N ){
+		for( j in 1:N ){
+			BETA[i,j] = -C[i,j]/C[i,i]
+		}
+	} 
+	BETA[ row(BETA)==col(BETA) ] <- 0
+	for( i in 1:N ){
+		eps <- -y %*% BETA[,i]
+		crit$bic <- crit$bic + T*log( (1/T)*sum(eps^2) ) + sum( results$theta !=0 )*log(T)
+		crit$aic <- crit$aic + T*log( (1/T)*sum(eps^2) ) + sum( results$theta !=0 )
+	}
 
 	dimnames(C)   <- list(labels,labels)
 	dimnames(Adj) <- list(labels,labels)
 	dimnames(PC)  <- list(labels,labels)
 
-	network     <- list()
-	network$C   <- C
-	network$bic <- bic
-	network$Adj <- Adj
-	network$PC  <- PC 
+	network      <- list()
+	network$C    <- C
+	network$crit <- crit
+	network$Adj  <- Adj
+	network$PC   <- PC 
 
 	network
 }
@@ -137,29 +164,30 @@ print.nets <- function( x , ... ) {
 	N <- ncol(y)
 	labels <- dimnames(y)[[2]]
 	if( is.null(labels) ) labels <- paste('V',1:N,sep='')
-	
-	bic <- 0
+
+	crit <- list( bic=0 , aic=0 )	
 	A   <- array( 0 , dim=c(p,N,N) )
 	G   <- matrix( 0 , N , N )
 	eps <- matrix( 0 , T-p , N )
 
 	for( i in 1:N )	{
+		# prepare stuff
 		Y <- matrix( 0 , T-p , 1 ) 
 		X <- matrix( 0 , T-p , p*N )
 		
 		Y[] <- y[ (p+1):T , i]
 		for( l in 1:p ){
 			X[, ( (p-1)*N + p ):( p*N ) ] <- y[ (p+1-l):(T-l) , ]
-		}	
-	
+		}
 		results <- .nets.alasso( Y , X , w=w, lambda=lambda , verbose=verbose , procedure=procedure )
 
+		# measure goodness of fit
 		for( l in 1:p ){
 			A[l,i,] <- results$theta[ ( (p-1)*N + p ):( p*N ) ]
-		}
-		
+		}	
 		eps[,i] <- results$eps
-		bic <- bic + T*log( (1/(T-1))*sum(eps[,i]^2) ) + sum( results$theta !=0 )*log(T)
+		crit$bic <- crit$bic + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )*log(T)
+		crit$aic <- crit$aic + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )
 	}
 	cat('\n')
 
@@ -172,42 +200,60 @@ print.nets <- function( x , ... ) {
 	dimnames(G)   <- list(labels,labels)
 	dimnames(Adj) <- list(labels,labels)
 
-	network     <- list()
-	network$A   <- A
-	network$G   <- G
-	network$bic <- bic
-	network$Adj <- Adj
-	network$eps <- eps
+	network      <- list()
+	network$A    <- A
+	network$G    <- G
+	network$crit <- crit
+	network$Adj  <- Adj
+	network$eps  <- eps
 
 	network
 }
 
-.nets.pc.search <- function(y,lambda,verbose){
+.nets.pc.search <- function(y,lambda,select,verbose){
 
 	if( length(lambda) == 1 ) return( .nets.pc(y,lambda,verbose) )
 
+	trace <- rep(0,length(lambda))
+	networks <- list()
+
+	for( i in 1:length(lambda) ) {
+		networks[[i]] <- .nets.pc(y,lambda[i],verbose)
+		trace[i] <- networks[[i]]$crit[[ select ]]
+	}
+	idx <- max( (1:length(lambda))[ min(trace)==trace ] )
+
+	# package results
+	network <- networks[[ idx ]]
+	network$idx   <- idx
+	network$trace <- trace
+
+	network
 }
 
-.nets.lrpc.search <- function(y){}
+.nets.lrpc.search <- function(y,p,lambda,select,verbose){
 
-.nets.g.search <- function(y,p,lambda,verbose){
+}
 
-	if( length(lambda) == 1 ){
-		return( .nets.g(y,lambda,verbose) )
-	}
+.nets.g.search <- function(y,p,lambda,crit,select,verbose){
 
-	bic <- rep(0,length(lambda))
+	# if there is only one lambda, no search
+	if( length(lambda) == 1 ) return( .nets.g(y,p,lambda,verbose) )
+
+	# otherwise, let's see which is the (max) lambda tha achieves the min 
+	trace <- rep(0,length(lambda))
 	networks <- list()
 
 	for( i in 1:length(lambda) ) {
 		networks[[i]] <- .nets.g(y,p,lambda[i],verbose)
-		bic[i] <- networks[[i]]$bic
+		trace[i] <- networks[[i]]$crit[[ select ]]
 	}
+	idx <- max( (1:length(lambda))[ min(trace)==trace ] )
 
-	pick <- max( (1:length(lambda))[ min(bic)==bic ] )
-	network <- networks[[ pick ]]
-	network$idx   <- pick
-	network$trace <- bic
+	# package results
+	network        <- networks[[ idx ]]
+	network$select <- idx
+	network$trace  <- trace
 
 	network
 }
@@ -218,7 +264,7 @@ print.nets <- function( x , ... ) {
 	M <- nrow(y)
 	N <- ncol(X)
 
-	toll <- 1e-6
+	toll    <- 1e-6
 	maxiter <- 20
 
 	# check inputs
