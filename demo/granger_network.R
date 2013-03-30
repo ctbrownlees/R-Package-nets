@@ -1,11 +1,15 @@
 
+# Clean Up
+rm( list=ls() )
+
+# Libraries
 require(nets)
 
-# Problem Parameters
+# Parameters
 N   <- 6
 T   <- 500
  
-# Simulate Process an VAR(1)
+# Simulate a VAR(1)
 A      <- matrix( 0 , N , N )
 A[1,1] <- 0.00; A[1,2] <- 0.00; A[1,3] <- 0.00; A[1,4] <- 0.00; A[1,5] <- 0.00; A[1,6] <- 0.15;
 A[2,1] <- 0.00; A[2,2] <- 0.00; A[2,3] <- 0.00; A[2,4] <- 0.30; A[2,5] <- 0.00; A[2,6] <- 0.00;
@@ -18,8 +22,17 @@ y <- matrix(0,T,N)
 eps <- matrix( rnorm(T*N,0,1) , T , N )
 for( t in 2:T ){ y[t,] = A %*% y[t-1,] + eps[t,] }
 
+plot( as.ts(y) , main='y' )
+
+readline("\nType  <Return>\t to Continue") 
+
 # Estimate Network 
-network <- nets(y,p=1,type='g',lambda=seq(1,10,0.5),verbose=TRUE)
+cat('Estimating Granger Network...')
+
+network <- nets( y, p=1, type='g', lambda=seq(1,10,0.5) )
+
+cat('done!')
+readline("Type  <Return>\t to Continue") 
 
 # Summary Stats
 print( cbind( A , rep(NA,N) , round( network$A[1,,] , 2 ) ) )

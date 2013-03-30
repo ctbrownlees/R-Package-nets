@@ -91,7 +91,7 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 		// check for convergence
 		delta = 0.0;
 		for( j=0; j<N; ++j ) delta += (theta_cur[j]-theta[j])*(theta_cur[j]-theta[j]); 
-		delta = sqrt( delta );	
+		delta = sqrt( delta );
 		if( delta < toll ) break;
 	}
 	Rprintf("\bdone!");

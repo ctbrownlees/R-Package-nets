@@ -19,6 +19,9 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shr
 	if( !is.logical(verbose) ){
 		stop("The 'verbose' parameter has to be TRUE or FALSE")
 	}
+
+	# std data (this should be optional)
+	for( i in 1:ncol(y) ) y[,i] <- (y[,i]-mean(y[,i]))/sd(y[,i])
 	
 	# redirect to the appropriate network estimation routine
 	network <- switch( type ,
@@ -47,7 +50,20 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shr
 }
 
 plot.nets <- function( x , ... ){ 
-  	plot( x$ig , ... )
+
+	if( !exists("what") ) {
+		plot( x$ig , ... )
+		return()
+	}
+
+	if( what=='r2trace' )
+	{
+	}
+
+	if( what=='ctrace' )
+	{
+	}
+
 }
 
 print.nets <- function( x , ... ) {
@@ -165,10 +181,11 @@ print.nets <- function( x , ... ) {
 	labels <- dimnames(y)[[2]]
 	if( is.null(labels) ) labels <- paste('V',1:N,sep='')
 
-	crit <- list( bic=0 , aic=0 )	
-	A   <- array( 0 , dim=c(p,N,N) )
-	G   <- matrix( 0 , N , N )
-	eps <- matrix( 0 , T-p , N )
+	crit    <- list( bic=0 , aic=0 )	
+	A       <- array( 0 , dim=c(p,N,N) )
+	G       <- matrix( 0 , N , N )
+	eps     <- matrix( 0 , T-p , N )
+	sig2err <- rep(0,N)
 
 	for( i in 1:N )	{
 		# prepare stuff
@@ -185,9 +202,10 @@ print.nets <- function( x , ... ) {
 		for( l in 1:p ){
 			A[l,i,] <- results$theta[ ( (p-1)*N + p ):( p*N ) ]
 		}	
-		eps[,i] <- results$eps
-		crit$bic <- crit$bic + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )*log(T)
-		crit$aic <- crit$aic + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )
+		eps[,i]     <- results$eps
+		crit$bic    <- crit$bic + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )*log(T)
+		crit$aic    <- crit$aic + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )
+		sig2err[i]  <- results$sig2err
 	}
 	cat('\n')
 
@@ -196,16 +214,20 @@ print.nets <- function( x , ... ) {
 	}
 
 	Adj <-(G!=0)*1
+	Adj[ row(Adj)==col(Adj) ] <- 0
 
 	dimnames(G)   <- list(labels,labels)
 	dimnames(Adj) <- list(labels,labels)
 
-	network      <- list()
-	network$A    <- A
-	network$G    <- G
-	network$crit <- crit
-	network$Adj  <- Adj
-	network$eps  <- eps
+	network         <- list()
+	network$A       <- A
+	network$G       <- G
+	network$crit    <- crit
+	network$Adj     <- Adj
+	network$eps     <- eps
+
+	network$sig2err <- mean(sig2err)
+	network$theta   <- A[1:(N*N*p)] 
 
 	network
 }
@@ -244,22 +266,30 @@ print.nets <- function( x , ... ) {
 	trace <- rep(0,length(lambda))
 	networks <- list()
 
+	theta   <- matrix( 0 , ncol(y)*ncol(y)*p , length(lambda) )
+	sig2err <- rep( 0 , length(lambda) ) 
+
 	for( i in 1:length(lambda) ) {
 		networks[[i]] <- .nets.g(y,p,lambda[i],verbose)
 		trace[i] <- networks[[i]]$crit[[ select ]]
+
+		theta[,i] <- networks[[i]]$theta
+		sig2err[i] <- networks[[i]]$sig2err
 	}
 	idx <- max( (1:length(lambda))[ min(trace)==trace ] )
 
 	# package results
-	network        <- networks[[ idx ]]
-	network$select <- idx
-	network$trace  <- trace
+	network         <- networks[[ idx ]]
+	network$select  <- idx
+	network$trace   <- trace
+	network$theta   <- theta
+	network$sig2err <- sig2err
 
 	network
 }
 
 # Adaptive Lasso
-.nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='shooting'){
+.nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='activeshooting'){
 	
 	M <- nrow(y)
 	N <- ncol(X)
@@ -294,8 +324,10 @@ print.nets <- function( x , ... ) {
         results <- .C(procedure, theta=as.double(rep(0,N)) , as.double(y) , as.double(X) , as.double(lambda) , as.double(w) , as.double(theta.init) , as.integer(M) , as.integer(N) , as.integer(verbose) , as.integer(init) , PACKAGE="nets" )
 
 	# packaging results
-	results <- list( theta=results$theta , eps=(y-X%*%results$theta) )
+	results <- list( theta=results$theta , eps=(y-X%*%results$theta) , sig2err=mean((y-X%*%results$theta)**2) )
 }
+
+alasso <- .nets.alasso
 
 # SPACE Algorithm
 .nets.space <- function(y,lambda,verbose=FALSE)
