@@ -1,7 +1,7 @@
 
 .packageName <- "nets"
 
-nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , select='bic' , verbose=FALSE ){ 
+nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , select='bic' , std=TRUE , verbose=FALSE ){ 
 
 	# input check
 	if( !any( type==c('lrpc','pc','g') ) ){
@@ -20,8 +20,10 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shr
 		stop("The 'verbose' parameter has to be TRUE or FALSE")
 	}
 
-	# std data (this should be optional)
-	for( i in 1:ncol(y) ) y[,i] <- (y[,i]-mean(y[,i]))/sd(y[,i])
+	# standardize the data (this should be optional)
+	if( std==TRUE ){
+		for( i in 1:ncol(y) ) y[,i] <- (y[,i]-mean(y[,i]))/sd(y[,i])
+	}
 	
 	# redirect to the appropriate network estimation routine
 	network <- switch( type ,
@@ -40,30 +42,69 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shr
 	network$ig <- ig
 
 	# network characteristics 
-	network$type <- type
-	network$T    <- nrow(y)
-	network$N    <- ncol(y)
+	network$type      <- type
+	network$criterion <- select
+	network$y         <- y
+	network$T         <- nrow(y)
+	network$N         <- ncol(y)
+	network$L         <- length(lambda)
 
 	class(network) <- 'nets'
+
+	# sanity checks
+	if( length(lambda) > 0 )
+	{
+		# check 1: min lambda shrinks everyone to zero?
+		#if( sum(network$theta[, network$lambda==max(network$lambda) ])==0 )
+		#{
+		#}
+
+		# check 2: max lambda shrinksd does not shrink anyone?
+
+		# check 3: optimal lambda is on the boundary?
+	}
+
 
 	network
 }
 
-plot.nets <- function( x , ... ){ 
+plot.nets <- function( x , what="netwok", ... ){ 
 
-	if( !exists("what") ) {
+	if( !exists("what")  ) {
 		plot( x$ig , ... )
 		return()
 	}
 
-	if( what=='r2trace' )
-	{
+	if( what=='graph' ){
+		plot( x$ig , ... )
 	}
-
 	if( what=='ctrace' )
 	{
-	}
+		lambda <- 1/(1+network$lambda[ rank(-network$lambda)]) 
+		ctrace <- t(network$theta)[ rank(-network$lambda), ] / max(network$theta[,length(network$lambda)])
+		lambda.hat <- 1/(1+network$lambda[ network$select ])
 
+		# plot
+		matplot( lambda , ctrace , t='l' , lwd=2 , main='C-Trace' , xlab='1/(1+lambda)' , ylab='standardised coefficients' )
+		abline(v=lambda.hat,col='lightgray',lwd=3)	
+	}
+	if( what=='r2trace' )
+	{
+		r2trace  <- 100*(1-network$sig2err/mean(diag(var(network$y))))[ rank(-network$lambda) ]
+
+		color    <- rep( 'lightblue' , network$L )
+		color[ network$select ] <- 'darkred'
+
+		names.arg <- rep('',19)
+		names.arg[1] <- 'lambda max'
+		names.arg[network$L] <- 'lambda min'
+		names.arg[network$select] <- 'selected'
+
+		# plot
+		par(las=2)
+		barplot( r2trace , lwd=2 , main='R2-Trace' , xlab='1/(1+lambda)' , ylab='R2' , col=color , names.arg=names.arg , yaxt="n" )
+		axis(2, axTicks(2), labels=sprintf("%.1f%%", axTicks(2)) )
+	}
 }
 
 print.nets <- function( x , ... ) {
@@ -219,15 +260,19 @@ print.nets <- function( x , ... ) {
 	dimnames(G)   <- list(labels,labels)
 	dimnames(Adj) <- list(labels,labels)
 
+	# assembling the network object
 	network         <- list()
-	network$A       <- A
-	network$G       <- G
-	network$crit    <- crit
-	network$Adj     <- Adj
-	network$eps     <- eps
-
-	network$sig2err <- mean(sig2err)
+	network$lambda  <- lambda
+	network$select  <- 1 
 	network$theta   <- A[1:(N*N*p)] 
+	network$sig2err <- mean(sig2err)
+	network$Adj     <- Adj
+	network$crit    <- crit # mmmhhh
+
+	network$granger     <- list()
+	network$granger$A   <- A
+	network$granger$G   <- G
+	network$granger$eps <- eps
 
 	network
 }
@@ -257,17 +302,19 @@ print.nets <- function( x , ... ) {
 
 }
 
-.nets.g.search <- function(y,p,lambda,crit,select,verbose){
+.nets.g.search <- function(y,p,lambda,select,verbose){
+
+	L <- length(lambda)
 
 	# if there is only one lambda, no search
-	if( length(lambda) == 1 ) return( .nets.g(y,p,lambda,verbose) )
+	if( L == 1 ) return( .nets.g(y,p,lambda,verbose) )
 
 	# otherwise, let's see which is the (max) lambda tha achieves the min 
-	trace <- rep(0,length(lambda))
+	trace <- rep(0,L)
 	networks <- list()
 
-	theta   <- matrix( 0 , ncol(y)*ncol(y)*p , length(lambda) )
-	sig2err <- rep( 0 , length(lambda) ) 
+	theta   <- matrix( 0 , ncol(y)*ncol(y)*p , L )
+	sig2err <- rep( 0 , L ) 
 
 	for( i in 1:length(lambda) ) {
 		networks[[i]] <- .nets.g(y,p,lambda[i],verbose)
@@ -276,15 +323,22 @@ print.nets <- function( x , ... ) {
 		theta[,i] <- networks[[i]]$theta
 		sig2err[i] <- networks[[i]]$sig2err
 	}
-	idx <- max( (1:length(lambda))[ min(trace)==trace ] )
+	idx <- max( (1:L)[ min(trace)==trace ] )
 
-	# package results
-	network         <- networks[[ idx ]]
-	network$select  <- idx
-	network$trace   <- trace
+	# assembling the network object
+	# common 
+	network         <- list()
+	network$lambda  <- lambda
+	network$select  <- (1:L)==idx
 	network$theta   <- theta
 	network$sig2err <- sig2err
+	network$Adj     <- networks[[ idx ]]$Adj
 
+	network$granger     <- list()
+	network$granger$A   <- networks[[ idx ]]$granger$A
+	network$granger$G   <- networks[[ idx ]]$granger$G
+	network$granger$eps <- networks[[ idx ]]$granger$eps
+	
 	network
 }
 

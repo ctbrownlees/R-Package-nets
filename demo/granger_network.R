@@ -29,17 +29,17 @@ readline("\nType  <Return>\t to Continue")
 # Estimate Network 
 cat('Estimating Granger Network...')
 
-network <- nets( y, p=1, type='g', lambda=seq(1,10,0.5) )
+network <- nets( y, p=1, type='g', lambda=c( seq(1,10,0.5) ) , std=FALSE )
 
 cat('done!')
 readline("Type  <Return>\t to Continue") 
 
 # Summary Stats
-print( cbind( A , rep(NA,N) , round( network$A[1,,] , 2 ) ) )
+print( cbind( A , rep(NA,N) , round( network$granger$A[1,,] , 2 ) ) )
 
-mse <- sqrt( sum( (A - network$A[1,,])^2 ) )
-tp1 <- mean( (network$A[1,,])[ A==0 ] != 0 )
-pow <- mean( (network$A[1,,])[ A!=0 ] != 0 )
+mse <- sqrt( sum( (A - network$granger$A[1,,])^2 ) )
+tp1 <- mean( (network$granger$A[1,,])[ A==0 ] != 0 )
+pow <- mean( (network$granger$A[1,,])[ A!=0 ] != 0 )
 
 cat( 'MSE:' , mse , 'Type1:' , tp1 , 'Power:' , pow , '\n')
 
