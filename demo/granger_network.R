@@ -24,15 +24,16 @@ for( t in 2:T ){ y[t,] = A %*% y[t-1,] + eps[t,] }
 
 plot( as.ts(y) , main='y' )
 
-readline("\nType  <Return>\t to Continue") 
+readline("Type <Return> to Continue") 
 
 # Estimate Network 
 cat('Estimating Granger Network...')
 
 network <- nets( y, p=1, type='g', lambda=c( seq(1,10,0.5) ) , std=FALSE )
 
-cat('done!')
-readline("Type  <Return>\t to Continue") 
+cat('done!\n')
+
+readline("Type <Return> to Continue") 
 
 # Summary Stats
 print( cbind( A , rep(NA,N) , round( network$granger$A[1,,] , 2 ) ) )
