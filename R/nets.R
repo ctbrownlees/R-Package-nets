@@ -1,8 +1,7 @@
 
 .packageName <- "nets"
 
-nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , select='bic' , std=TRUE , verbose=FALSE ){ 
-
+nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , select='bic' , std=TRUE , verbose=FALSE ){
 	# input check
 	if( !any( type==c('lrpc','pc','g') ) ){
 		stop("The 'type' parameter has to be set to either 'lrpc', 'pc' or 'g'")
@@ -19,8 +18,12 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shr
 	if( !is.logical(verbose) ){
 		stop("The 'verbose' parameter has to be TRUE or FALSE")
 	}
+	
+	# input fix
+	# sort & unique  
+	lambda <- unique( sort( lambda ) )
 
-	# standardize the data (this should be optional)
+	# standardize the data
 	if( std==TRUE ){
 		for( i in 1:ncol(y) ) y[,i] <- (y[,i]-mean(y[,i]))/sd(y[,i])
 	}
@@ -64,46 +67,45 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shr
 		# check 3: optimal lambda is on the boundary?
 	}
 
-
 	network
 }
 
-plot.nets <- function( x , what="netwok", ... ){ 
+plot.nets <- function( x , ... ){ 
 
-	if( !exists("what")  ) {
-		plot( x$ig , ... )
-		return()
+	# check what to plot
+	args  <- list(...)
+	if( "what" %in% names(args) ) what <- args['what']
+	else what='graph'
+
+	# error check
+	if( !any( what==c('graph','ctrace','r2trace') ) ){
+		stop("The 'what' parameter has to be set to either 'graph','ctrace' or 'r2trace'")
 	}
 
 	if( what=='graph' ){
-		plot( x$ig , ... )
+		# ugh! 
+		plot( x$ig )
 	}
-	if( what=='ctrace' )
-	{
+	if( what=='ctrace' ){
 		lambda <- 1/(1+network$lambda[ rank(-network$lambda)]) 
-		ctrace <- t(network$theta)[ rank(-network$lambda), ] / max(network$theta[,length(network$lambda)])
+		ctrace <- t(network$theta)[ rank(-network$lambda), ] / max(network$theta[,1])
 		lambda.hat <- 1/(1+network$lambda[ network$select ])
 
 		# plot
-		matplot( lambda , ctrace , t='l' , lwd=2 , main='C-Trace' , xlab='1/(1+lambda)' , ylab='standardised coefficients' )
-		abline(v=lambda.hat,col='lightgray',lwd=3)	
+		matplot(lambda,ctrace,t='b',pch=1,lwd=2,main='C-Trace',xlab='1/(1+lambda)',ylab='standardised coefficients',xpd=FALSE)
+		abline(v=lambda.hat,col='gray',lwd=5,xpd=FALSE)	
 	}
-	if( what=='r2trace' )
-	{
+	if( what=='r2trace' ){
 		r2trace  <- 100*(1-network$sig2err/mean(diag(var(network$y))))[ rank(-network$lambda) ]
 
 		color    <- rep( 'lightblue' , network$L )
-		color[ network$select ] <- 'darkred'
-
-		names.arg <- rep('',19)
-		names.arg[1] <- 'lambda max'
-		names.arg[network$L] <- 'lambda min'
-		names.arg[network$select] <- 'selected'
+		color[ rev(network$select) ] <- 'gray'
 
 		# plot
+		barplot( r2trace , lwd=2 , main='R2-Trace' , xlab='1/(1+lambda)' , ylab='R2' , col=color , yaxt="n" , xaxt="n" )
 		par(las=2)
-		barplot( r2trace , lwd=2 , main='R2-Trace' , xlab='1/(1+lambda)' , ylab='R2' , col=color , names.arg=names.arg , yaxt="n" )
 		axis(2, axTicks(2), labels=sprintf("%.1f%%", axTicks(2)) )
+		box()
 	}
 }
 
@@ -257,11 +259,14 @@ print.nets <- function( x , ... ) {
 	Adj <-(G!=0)*1
 	Adj[ row(Adj)==col(Adj) ] <- 0
 
+	#dimnames(A)   <- list(labels,labels)
 	dimnames(G)   <- list(labels,labels)
 	dimnames(Adj) <- list(labels,labels)
 
 	# assembling the network object
+	# common stuff
 	network         <- list()
+	network$names   <- labels
 	network$lambda  <- lambda
 	network$select  <- 1 
 	network$theta   <- A[1:(N*N*p)] 
@@ -269,7 +274,9 @@ print.nets <- function( x , ... ) {
 	network$Adj     <- Adj
 	network$crit    <- crit # mmmhhh
 
+	# granger stuff
 	network$granger     <- list()
+	network$granger$p   <- p
 	network$granger$A   <- A
 	network$granger$G   <- G
 	network$granger$eps <- eps

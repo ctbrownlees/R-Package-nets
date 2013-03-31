@@ -66,7 +66,7 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 	}
 
 	// iterate
-	Rprintf("\r Estimating Network:  ");
+	Rprintf("\r LASSO Optimization (shooting algorithm):  ");
 	for( iter=0 ; iter<maxiter ; ++iter ) {
 		Rprintf("\b%c",prog_indicator[ iter % 7 ]);
 
