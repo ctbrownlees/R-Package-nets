@@ -1,15 +1,15 @@
 
-# Clean Up
+# clean up
 rm( list=ls() )
 
-# Libraries
+# libraries
 require(nets)
 
-# Parameters
+# parameters
 N   <- 6
 T   <- 500
  
-# Simulate a VAR(1)
+# simulate a VAR(1)
 A      <- matrix( 0 , N , N )
 A[1,1] <- 0.00; A[1,2] <- 0.00; A[1,3] <- 0.00; A[1,4] <- 0.00; A[1,5] <- 0.00; A[1,6] <- 0.15;
 A[2,1] <- 0.00; A[2,2] <- 0.00; A[2,3] <- 0.00; A[2,4] <- 0.30; A[2,5] <- 0.00; A[2,6] <- 0.00;
@@ -22,20 +22,25 @@ y <- matrix(0,T,N)
 eps <- matrix( 0.5*rnorm(T*N,0,1) , T , N )
 for( t in 2:T ){ y[t,] = A %*% y[t-1,] + eps[t,] }
 
-plot( as.ts(y) , main='y' )
+# plot data
+plot( y )
 
-readline("Type <Return> to Continue") 
+# estimate Network 
+network <- nets( y, p=1, type='g', lambda=c( 0, seq(1,10,0.5), 10 ) , std=FALSE )
 
-# Estimate Network 
-cat('Estimating Granger Network...')
+# estimation details
+network
 
-network <- nets( y, p=1, type='g', lambda=c( seq(1,10,0.5) ) , std=FALSE )
+# estimated network graph
+plot(network)
 
-cat('done!\n')
+# coefficient trace
+plot(network,what='ctrace')
 
-readline("Type <Return> to Continue") 
+# r2 trace
+plot(network,what='r2trace')
 
-# Summary Stats
+# performance statistics
 print( cbind( A , rep(NA,N) , round( network$granger$A[1,,] , 2 ) ) )
 
 mse <- sqrt( sum( (A - network$granger$A[1,,])^2 ) )

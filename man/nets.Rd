@@ -11,11 +11,22 @@
 \item{p}{VAR order (for Granger)}
 \item{algorithm}{Optimization algorithm to be used.}
 \item{lambda}{shrinkage parameter(s)}
-\item{select}{selection criteria: BIC (bic, defauly) or AIC (aic)}
-\item{std}{standardise variables}
+\item{select}{selection criteria: BIC (bic, default) or AIC (aic)}
+\item{std}{standardise variables before estimating the network (TRUE or FALSE). The default is TRUE.}
 \item{verbose}{extra output messages} }
 \details{The nets procedure can be used to fit long run partial correlation networks, partial correlation and Granger networks.}
-\value{The return value of the nets method is a network object.}
+\value{
+	The ‘nets’ procedure returns an object of class ‘"nets"’
+
+	The functions ‘summary’, ‘plot’ and ‘print’ are used to obtain and print a
+	summary of the results.
+
+	An object of class ‘"nets"’ is a list containing at least the following components:
+
+	T: number of observations in the panel
+
+	Adj: adjacency matrix of the network
+}
 \references{
 Barigozzi, M. and Brownlees, C. (2012) NETS: Network Estimation for Time Series
 }

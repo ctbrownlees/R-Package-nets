@@ -95,6 +95,9 @@ plot.nets <- function( x , ... ){
 		matplot(lambda,ctrace,t='b',pch=1,lwd=2,main='C-Trace',xlab='1/(1+lambda)',ylab='standardised coefficients',xpd=FALSE)
 		abline(v=lambda.hat,col='gray',lwd=5,xpd=FALSE)	
 	}
+	if( what=='trace' ){
+		# TODO: trace of information criteria
+	}
 	if( what=='r2trace' ){
 		r2trace  <- 100*(1-network$sig2err/mean(diag(var(network$y))))[ rank(-network$lambda) ]
 
@@ -122,7 +125,10 @@ print.nets <- function( x , ... ) {
 		medge <- ((x$N-1)*x$N)/2.0
 	}
 
-	cat( ' ' , labels[[ x$type ]] , ' Network\n' , sep='' )
+	cat( ' Network Type: ' , labels[[ x$type ]] , '\n' , sep='' )
+	cat( ' Time Series Dimension: T=',network$T,' N=',network$N,'\n',sep='')
+	if( network$L > 1) cat( ' Regularization Method: ',network$criterion,'\n',sep='')
+	cat( '\n')
 	cat( ' Number of Detected Edges: ' , nedge , ' (' , round( (nedge/medge)*100 , 1 ) , '%)\n' , sep='' )
 }
 
@@ -224,7 +230,7 @@ print.nets <- function( x , ... ) {
 	labels <- dimnames(y)[[2]]
 	if( is.null(labels) ) labels <- paste('V',1:N,sep='')
 
-	crit    <- list( bic=0 , aic=0 )	
+	crit    <- matrix(0,1,2,dimnames=list(NULL,c('aic','bic'))) 
 	A       <- array( 0 , dim=c(p,N,N) )
 	G       <- matrix( 0 , N , N )
 	eps     <- matrix( 0 , T-p , N )
@@ -245,10 +251,10 @@ print.nets <- function( x , ... ) {
 		for( l in 1:p ){
 			A[l,i,] <- results$theta[ ( (p-1)*N + p ):( p*N ) ]
 		}	
-		eps[,i]     <- results$eps
-		crit$bic    <- crit$bic + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )*log(T)
-		crit$aic    <- crit$aic + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )
-		sig2err[i]  <- results$sig2err
+		eps[,i]       <- results$eps
+		crit[1,'bic'] <- crit[1,'bic'] + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )*log(T)
+		crit[1,'aic'] <- crit[1,'aic'] + T*log( (1/T)*sum(eps[,i]^2) ) + sum( results$theta !=0 )
+		sig2err[i]    <- results$sig2err
 	}
 	cat('\n')
 
@@ -272,7 +278,7 @@ print.nets <- function( x , ... ) {
 	network$theta   <- A[1:(N*N*p)] 
 	network$sig2err <- mean(sig2err)
 	network$Adj     <- Adj
-	network$crit    <- crit # mmmhhh
+	network$crit    <- crit 
 
 	# granger stuff
 	network$granger     <- list()
@@ -319,28 +325,32 @@ print.nets <- function( x , ... ) {
 	# otherwise, let's see which is the (max) lambda tha achieves the min 
 	trace <- rep(0,L)
 	networks <- list()
-
+	
 	theta   <- matrix( 0 , ncol(y)*ncol(y)*p , L )
+	crit    <- matrix( 0,L,2,dimnames=list(NULL,c('aic','bic')))
 	sig2err <- rep( 0 , L ) 
 
-	for( i in 1:length(lambda) ) {
+	for( i in 1:L ) {
 		networks[[i]] <- .nets.g(y,p,lambda[i],verbose)
-		trace[i] <- networks[[i]]$crit[[ select ]]
+		trace[i] <- networks[[i]]$crit[ 1, select ]
 
 		theta[,i] <- networks[[i]]$theta
+		crit[i,]  <- networks[[i]]$crit
 		sig2err[i] <- networks[[i]]$sig2err
 	}
 	idx <- max( (1:L)[ min(trace)==trace ] )
 
 	# assembling the network object
-	# common 
+	# common stuff
 	network         <- list()
 	network$lambda  <- lambda
 	network$select  <- (1:L)==idx
 	network$theta   <- theta
+	network$crit    <- crit
 	network$sig2err <- sig2err
 	network$Adj     <- networks[[ idx ]]$Adj
 
+	# granger stuff 
 	network$granger     <- list()
 	network$granger$A   <- networks[[ idx ]]$granger$A
 	network$granger$G   <- networks[[ idx ]]$granger$G

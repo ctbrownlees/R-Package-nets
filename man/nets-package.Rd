@@ -2,7 +2,7 @@
 \alias{nets-package}
 \docType{package}
 \title{Network Estimator for Time Series}
-\description{The NETS packagae provides routines for the estimation of sparse long run partial correlation networks for time series data as well as other types of sparse networks.}
+\description{The NETS package provides a comprehensive set of procedures for the estimation and analysis of sparse networks for time series data.}
 \details{
 \tabular{ll}{
 Package: \tab nets\cr

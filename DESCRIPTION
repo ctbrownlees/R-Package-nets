@@ -6,6 +6,6 @@ Date: 2013-03-03
 Author: Christian Brownlees
 Maintainer: Christian Brownlees <christian.brownlees@upf.edu>
 Depends: igraph
-Description: The package provides routines for the estimation and analysis of sparse networks for time series data 
+Description: The package provides routines for the estimation and analysis of sparse networks for multivariate time series data 
 License: GPL 
 LazyLoad: yes
