@@ -3,7 +3,7 @@
 rm( list=ls() )
 
 # Parameters
-S    <- 10
+S    <- 100
 N    <- 100
 P    <- 70
 P.NZ <- 0.2
@@ -22,16 +22,20 @@ lambda.range <- rev( c( 0 , seq(0.1,10,0.1) , 100 ) )
 L <- length(lambda.range)
 
 #
-mse <- matrix( 0 , S , L )
-tp  <- matrix( 0 , S , L )
-tn  <- matrix( 0 , S , L )
-fp  <- matrix( 0 , S , L )
-fn  <- matrix( 0 , S , L )
+mse    <- matrix( 0 , S , L )
+mse.ls <- matrix( 0 , S , 1 )
+tp     <- matrix( 0 , S , L )
+tn     <- matrix( 0 , S , L )
+fp     <- matrix( 0 , S , L )
+fn     <- matrix( 0 , S , L )
 
 # Simulation
 for( s in 1:S )
 {
 	y <- X %*% theta.true + rnorm(N,0,1)
+		
+	theta.ls <- coef( lm( y ~ 0 + X ) );
+	mse.ls[s]   <- mean( ( theta.ls - theta.true )**2  )
 
 	for( l in 1:L )
 	{
@@ -49,7 +53,7 @@ for( s in 1:S )
 }
 
 # compuet MSE
-mse <- colSums(mse)
+mse <- colSums(mse) / mean(mse.ls) 
 
 plot( lambda.range , mse , col='darkblue' , lwd=3)
 
