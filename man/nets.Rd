@@ -53,7 +53,9 @@ for( t in 2:T ){
 
 network <- nets(y,type='g',lambda=1:5,verbose=TRUE)
 
-print( cbind( A , rep(NA,N) , round( network$A[1,,] , 2 ) ) )
+network
+
+plot( network )
 
 }
 \keyword{network}
