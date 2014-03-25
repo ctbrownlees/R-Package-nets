@@ -96,6 +96,10 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 	}
 	Rprintf("\bdone!");
 
+	if( maxiter==iter ) {
+		Rprintf("Convergence was not achieved after %d iterations.\n",maxiter);
+	}
+
 	// clean up	
 	for(i = 0; i < M; i++){ Free(X[i]); }
 	Free(X);
