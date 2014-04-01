@@ -11,7 +11,7 @@ double sgn(double x) {
 }
 
 // shooting algorithm
-void shooting(double *theta, double *y, double *x, double *l, double *w, double *theta_init, int *m, int *n, int *v, int *ti)
+void shooting(double *theta, double *y, double *x, double *l, double *w, double *theta_init, int *m, int *n, int *v, int *ti, int *max_iter)
 {
 	int M, N;
 	int i,j,k;
@@ -24,7 +24,7 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 	double sum, eps;
 
 	// 
-	maxiter = 100;
+	maxiter = *max_iter;
 	toll = 1e-6;
 
 	// housekeeping
@@ -38,6 +38,7 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 		X[i] = Calloc(N,double); 
 		for( j=0; j<N; j++ ) {
 			X[i][j] = x[ M * j + i ];
+			//Rprintf("X %d %d = %f. \n",i,j,X[i][j]);
 		}
 	}
 
@@ -45,7 +46,8 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 	for( j=0; j<N; j++) {
 		X_sumsqr[j] = 0.0;
 		for( i=0; i<M; i++ ) X_sumsqr[j] += X[i][j]*X[i][j];
-		X_sumsqr[j] *= 2;
+		X_sumsqr[j] *= 2.0;
+		Rprintf("Xsquared %d = %f. \n",j,X_sumsqr[j]);
 	}
 	
 	theta_cur = Calloc(N,double);
@@ -55,16 +57,14 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 	{
 		sum = 0.0;
 		for( i=0; i<M; ++i ) sum += y[i]*X[i][j];
-		sum *= -2;
+		sum *= -2.0;
 
-		if( abs(sum)>lambda*w[j] )
-		{
-			if( sum - lambda*w[j] > 0 ) theta[j] = ( lambda*w[j]-sum)/X_sumsqr[j];
-			if( sum + lambda*w[j] < 0 ) theta[j] = (-lambda*w[j]-sum)/X_sumsqr[j];
-		}
-		else theta[j] = 0.0;
+		theta[j] = 0.0;
+
+		if( sum - lambda*w[j] > 0 ) theta[j] = ( lambda*w[j]-sum)/X_sumsqr[j];
+		if( sum + lambda*w[j] < 0 ) theta[j] = (-lambda*w[j]-sum)/X_sumsqr[j];
 	}
-
+		
 	// iterate
 	Rprintf("\r LASSO Optimization (shooting algorithm):  ");
 	for( iter=0 ; iter<maxiter ; ++iter ) {
@@ -76,16 +76,20 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 			sum = 0.0;
 			for( i=0; i<M; ++i ) {
 				eps = y[i];
-				for(k=0;k<N;++k) eps -= (k==j?0.0:theta_cur[k])*X[i][k];
+				for( k=0; k<N; ++k) {
+					eps -= (k==j?0.0:theta_cur[k])*X[i][k];
+					//Rprintf("step %d %d %d eps :%f.\n",j,i,k,eps);
+				}
 				sum += eps*X[i][j];
+				//Rprintf("step %d %d sum :%f.\n",j,i,sum);
 			}
-			sum *= -2;
-
-			if( abs(sum)>lambda*w[j] ) {
-				if( sum - lambda*w[j] > 0 ) theta[j] = ( lambda*w[j]-sum)/X_sumsqr[j];
-				if( sum + lambda*w[j] < 0 ) theta[j] = (-lambda*w[j]-sum)/X_sumsqr[j];
-			}
-			else theta[j] = 0.0;
+			sum *= -2.0;
+			Rprintf("step %d %d sum :%f,%f.\n",iter,j,abs(sum),sum);
+			
+			theta[j] = 0.0;
+			if( sum - lambda*w[j] > 0 ) theta[j] = ( lambda*w[j]-sum)/X_sumsqr[j];
+			if( sum + lambda*w[j] < 0 ) theta[j] = (-lambda*w[j]-sum)/X_sumsqr[j];
+			Rprintf("theta was %f now it is %f. \n",theta_cur[j],theta[j]);
 		}
 
 		// check for convergence
@@ -124,7 +128,7 @@ void activeshooting(double *theta, double *y, double *x, double *l, double *w, d
 	int n_active;
 
 	// 
-	maxiter = 100;
+	maxiter = 200;
 	toll = 1e-6;
 	verbose = *v;
 

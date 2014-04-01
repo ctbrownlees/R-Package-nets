@@ -1,16 +1,20 @@
 library(nets)
 
 # Parameters
-N    <- 100
-P    <- 10
+N    <- 31
+P    <- 30
 P.NZ <- 0.2
+NbIter <- 100
 
 # select Lambda to test
 lambda.range <- rev( seq(0,20,0.2) )
 L <- length(lambda.range)
 
-#How many simulations per lambda
-NbIter <- 100
+
+
+nonzero <- rbinom(P,1,P.NZ)
+theta.true <- rep( 0 , P );
+theta.true[ nonzero==1 ] <- rnorm( sum(nonzero) , 0 , 1)
 
 #For every simulation we record the number of zero-parameter there is in theta.true and in theta.lambda
 NbZeros = matrix(0,NbIter,length(lambda.range))
@@ -19,9 +23,6 @@ NbZerostrue = matrix(0,NbIter)
 
 for( i in 1:NbIter )
 	{#Initialize theta, X and y
-	nonzero <- rbinom(P,1,P.NZ)
-	theta.true <- rep( 0 , P );
-	theta.true[ nonzero==1 ] <- rnorm( sum(nonzero) , 0 , 1)
 	NbZerostrue[i] <- length(which(theta.true == 0))
 	X <- matrix( rnorm(N*P,0,1) , N , P )
 	X[,1] <- 1

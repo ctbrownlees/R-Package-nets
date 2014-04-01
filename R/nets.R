@@ -360,13 +360,13 @@ print.nets <- function( x , ... ) {
 }
 
 # Adaptive Lasso
-.nets.alasso <- function(y,X,lambda,w='adaptive',verbose=FALSE,procedure='activeshooting'){
+.nets.alasso <- function(y,X,lambda,maxiter='100',w='adaptive',verbose=FALSE,procedure='activeshooting'){
 	
 	M <- nrow(y)
 	N <- ncol(X)
 
 	toll    <- 1e-6
-	maxiter <- 20
+	
 
 	# check inputs
 	if( any( !is.finite(y) ) ){ stop('The response vector contains non finite values.') }
@@ -376,8 +376,9 @@ print.nets <- function( x , ... ) {
 	# adaptive lasso weights
 	if( w=='adaptive' ) {
 		if( ncol(X) < nrow(y) ){
-			beta.pre <- coef( lm( y ~ 0+X ) )
-			w <- 1/abs(beta.pre)
+			# beta.pre <- coef( lm( y ~ 0+X ) )
+			# w <- 1/abs(beta.pre)
+			w <- rep(1,N)
 		}
 		else {
 			# TODO: ridge
@@ -392,7 +393,7 @@ print.nets <- function( x , ... ) {
 	init <- 0
 
 	# call shooting algorithm
-        results <- .C(procedure, theta=as.double(rep(0,N)) , as.double(y) , as.double(X) , as.double(lambda) , as.double(w) , as.double(theta.init) , as.integer(M) , as.integer(N) , as.integer(verbose) , as.integer(init) , PACKAGE="nets" )
+        results <- .C(procedure, theta=as.double(rep(0,N)) , as.double(y) , as.double(X) , as.double(lambda) , as.double(w) , as.double(theta.init) , as.integer(M) , as.integer(N) , as.integer(verbose) , as.integer(init), as.integer(maxiter) , PACKAGE="nets" )
 
 	# packaging results
 	results <- list( theta=results$theta , eps=(y-X%*%results$theta) , sig2err=mean((y-X%*%results$theta)**2) )
