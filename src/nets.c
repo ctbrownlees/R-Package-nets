@@ -47,7 +47,7 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 		X_sumsqr[j] = 0.0;
 		for( i=0; i<M; i++ ) X_sumsqr[j] += X[i][j]*X[i][j];
 		X_sumsqr[j] *= 2.0;
-		Rprintf("Xsquared %d = %f. \n",j,X_sumsqr[j]);
+		//Rprintf("Xsquared %d = %f. \n",j,X_sumsqr[j]);
 	}
 	
 	theta_cur = Calloc(N,double);
@@ -77,19 +77,19 @@ void shooting(double *theta, double *y, double *x, double *l, double *w, double 
 			for( i=0; i<M; ++i ) {
 				eps = y[i];
 				for( k=0; k<N; ++k) {
-					eps -= (k==j?0.0:theta_cur[k])*X[i][k];
+					eps -= (k==j?0.0:theta[k])*X[i][k];
 					//Rprintf("step %d %d %d eps :%f.\n",j,i,k,eps);
 				}
 				sum += eps*X[i][j];
 				//Rprintf("step %d %d sum :%f.\n",j,i,sum);
 			}
 			sum *= -2.0;
-			Rprintf("step %d %d sum :%f,%f.\n",iter,j,abs(sum),sum);
+			//Rprintf("step %d %d sum :%f,%f.\n",iter,j,abs(sum),sum);
 			
 			theta[j] = 0.0;
 			if( sum - lambda*w[j] > 0 ) theta[j] = ( lambda*w[j]-sum)/X_sumsqr[j];
 			if( sum + lambda*w[j] < 0 ) theta[j] = (-lambda*w[j]-sum)/X_sumsqr[j];
-			Rprintf("theta was %f now it is %f. \n",theta_cur[j],theta[j]);
+			//Rprintf("theta was %f now it is %f. \n",theta_cur[j],theta[j]);
 		}
 
 		// check for convergence
@@ -345,7 +345,7 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 		for( iter_in=0 ; iter_in<maxiter_in ; ++iter_in ) {
 
 			// set current param
-			for( i=1; i<N; ++i ) for( j=0; j<i-1; ++j ) theta_cur[ i*(i-1)/2 +j ] = theta[ i*(i-1)/2+j ];
+			for( i=1; i<N; ++i ) for( j=0; j<i-1; ++j ) theta_cur[ i*(i-1)/2+j ] = theta[ i*(i-1)/2+j ];
 
 			// update
 			for( i=1; i<N; ++i ){
@@ -359,8 +359,8 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 						eps_2 = Y[k][j];
 						for( h=0; h<N; ++h ){
 							if( h==j || h==i ) continue;
-							eps_1 -= theta_cur[ (h<i)?(i*(i-1)/2+h):(h*(h-1)/2+i) ] * sqrt(ivar[h]/ivar[i]) * (Y[k][h]);
-							eps_2 -= theta_cur[ (h<j)?(j*(j-1)/2+h):(h*(h-1)/2+j) ] * sqrt(ivar[h]/ivar[j]) * (Y[k][h]);
+							eps_1 -= theta[ (h<i)?(i*(i-1)/2+h):(h*(h-1)/2+i) ] * sqrt(ivar[h]/ivar[i]) * (Y[k][h]);
+							eps_2 -= theta[ (h<j)?(j*(j-1)/2+h):(h*(h-1)/2+j) ] * sqrt(ivar[h]/ivar[j]) * (Y[k][h]);
 						}
 						cov += eps_1 * sqrt(ivar[j]/ivar[i]) * (Y[k][j]) + eps_2 * sqrt(ivar[i]/ivar[j]) * (Y[k][i]);
 						var += (ivar[j]/ivar[i])*(Y[k][j]*Y[k][j]) + (ivar[i]/ivar[j])*(Y[k][i]*Y[k][i]);

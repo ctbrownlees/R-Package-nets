@@ -360,14 +360,13 @@ print.nets <- function( x , ... ) {
 }
 
 # Adaptive Lasso
-.nets.alasso <- function(y,X,lambda,maxiter='100',w='adaptive',verbose=FALSE,procedure='activeshooting'){
+.nets.alasso <- function(y,X,lambda,maxiter=100,w='adaptive',verbose=FALSE,procedure='activeshooting'){
 	
 	M <- nrow(y)
 	N <- ncol(X)
 
 	toll    <- 1e-6
 	
-
 	# check inputs
 	if( any( !is.finite(y) ) ){ stop('The response vector contains non finite values.') }
 	if( any( !is.finite(X) ) ){ stop('The data matrix contains non finite values.') }
