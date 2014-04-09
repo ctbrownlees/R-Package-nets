@@ -23,6 +23,11 @@ network <- nets( y, type='pc' , lambda=seq(10,90,10) )
 print( cbind( SigInv , rep(NA,N) , round(network$C,2) ) )
 cat('\n')
 
+# info
+network
+
+plot( network )
+
 # Some Metrics
 mse <- sqrt( sum( (SigInv - network$C)^2 ) )
 tp1 <- mean( (network$C)[ SigInv==0 ] != 0 ) # THIS IS WRONG: I SHOULD NOT CONSIDER THE DIAGONAL
