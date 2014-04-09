@@ -52,12 +52,12 @@ for( s in 1:S )
 	}
 }
 
-# compuet MSE
+# compute MSE
 mse <- colSums(mse) / mean(mse.ls) 
 
 plot( lambda.range , mse , col='darkblue' , lwd=3)
 
-# Compute and plot the ROC 
+# compute and plot the ROC 
 tp <- colSums(tp)
 tn <- colSums(tn)
 fp <- colSums(fp)
