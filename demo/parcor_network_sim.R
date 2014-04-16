@@ -6,33 +6,50 @@ library(MASS)
 # Problem Parameters
 N   <- 6
 T   <- 500
- 
+
+# Simulations
+S   <- 100
+
+tp     <- matrix( 0 , S , 1 )
+tn     <- matrix( 0 , S , 1 )
+fp     <- matrix( 0 , S , 1 )
+fn     <- matrix( 0 , S , 1 )
+
+
 # SigInv
-SigInv <- matrix( 0 , N , N )
-SigInv[1,1] <-  1.00; SigInv[1,2] <-  0.00; SigInv[1,3] <-  0.00; SigInv[1,4] <-  0.00; SigInv[1,5] <- 0.00; SigInv[1,6] <- 0.00;
-SigInv[2,1] <-  0.00; SigInv[2,2] <-  2.00; SigInv[2,3] <-  0.00; SigInv[2,4] <-  0.00; SigInv[2,5] <- 0.00; SigInv[2,6] <- 0.00;
-SigInv[3,1] <-  0.00; SigInv[3,2] <-  0.00; SigInv[3,3] <-  2.00; SigInv[3,4] <- -0.40; SigInv[3,5] <- 0.00; SigInv[3,6] <- 0.00;
-SigInv[4,1] <-  0.00; SigInv[4,2] <-  0.00; SigInv[4,3] <- -0.40; SigInv[4,4] <-  3.00; SigInv[4,5] <- 0.00; SigInv[4,6] <- 0.00;
-SigInv[5,1] <-  0.00; SigInv[5,2] <-  0.00; SigInv[5,3] <-  0.00; SigInv[5,4] <-  0.00; SigInv[5,5] <- 2.00; SigInv[5,6] <- 0.00;
-SigInv[6,1] <-  0.00; SigInv[6,2] <-  0.00; SigInv[6,3] <-  0.00; SigInv[6,4] <-  0.00; SigInv[6,5] <- 0.00; SigInv[6,6] <- 1.00;
+nonzero <- rbinom(N*(N-1)/2,1,P.NZ)*runif(N*(N-1)/2)
+SigInv <- diag( 1 , N , N )
+count <- 1
+for (i in 1:(N-1))
+{
+	for (j in (i+1):N)
+	{
+		SigInv[i,j] <-  nonzero[count]
+		SigInv[j,i] <-  nonzero[count]
+		count = count+1	
+	}
+}
 
-y <- mvrnorm(T, rep(0,N) , solve(SigInv) )
 
-network <- nets( y, type='pc' , lambda=seq(10,90,10) )
+for (s in 1:S)
+{ 
+	y <- mvrnorm(T, rep(0,N) , solve(SigInv) )
 
-print( cbind( SigInv , rep(NA,N) , round(network$C,2) ) )
-cat('\n')
+	network <- nets( y, type='pc' , lambda=seq(10,90,10) )
 
-# info
-network
 
-plot( network )
 
-# Some Metrics
-mse <- sqrt( sum( (SigInv - network$C)^2 ) )
-tp1 <- mean( (network$C)[ SigInv==0 ] != 0 ) # THIS IS WRONG: I SHOULD NOT CONSIDER THE DIAGONAL
-pow <- mean( (network$C)[ SigInv!=0 ] != 0 )
-pos <- min(eigen( network$C )$values)> 1e-6 
+	# Some Metrics
+	tp[s] <- sum( (network$C)[ SigInv!=0 ] != 0 )
+	tn[s] <- sum( (network$C)[ SigInv==0 ] == 0 )
+	fp[s] <- sum( (network$C)[ SigInv==0 ] != 0 )
+	fn[s] <- sum( (network$C)[ SigInv!=0 ] == 0 )
+}
 
-cat( 'MSE' , mse , 'TYPE1' , tp1 , 'pow' , pow , 'pos:' , pos , 'lambda' , network$lambda , '\n')
+# More Metrics
+tpr <- tp / (tp + fn) 
+fpr <- fp / (fp + tn)
+
+plot( fpr , tpr , t='l' , main='ROC' , col='darkblue' , lwd=3 , ylim=c(0,1) , xlim=c(0,1))
+
 

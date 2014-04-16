@@ -201,7 +201,7 @@ void activeshooting(double *theta, double *y, double *x, double *l, double *w, d
 				sum = 0.0;
 				for( i=0; i<M; ++i ) {
 					eps = y[i];
-					for(k=0;k<N;++k) eps -= (k==j?0.0:theta_cur[k])*X[i][k];
+					for(k=0;k<N;++k) eps -= (k==j?0.0:theta[k])*X[i][k];
 					sum += eps*X[i][j];
 				}
 				sum *= -2;
@@ -232,7 +232,7 @@ void activeshooting(double *theta, double *y, double *x, double *l, double *w, d
 			for( i=0; i<M; ++i )
 			{
 				eps = y[i];
-				for(k=0;k<N;++k) eps -= (k==j?0.0:theta_cur[k])*X[i][k];
+				for(k=0;k<N;++k) eps -= (k==j?0.0:theta[k])*X[i][k];
 				sum += eps*X[i][j];
 			}
 			sum *= -2;
