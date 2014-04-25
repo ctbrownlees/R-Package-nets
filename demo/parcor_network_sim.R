@@ -4,8 +4,9 @@ require(nets)
 library(MASS)
 
 # Problem Parameters
-N   <- 6
+N   <- 10
 T   <- 500
+P.NZ <- 0.3
 
 # Simulations
 S   <- 100
@@ -40,10 +41,10 @@ for (s in 1:S)
 
 
 	# Some Metrics
-	tp[s] <- sum( (network$C)[ SigInv!=0 ] != 0 )
-	tn[s] <- sum( (network$C)[ SigInv==0 ] == 0 )
-	fp[s] <- sum( (network$C)[ SigInv==0 ] != 0 )
-	fn[s] <- sum( (network$C)[ SigInv!=0 ] == 0 )
+	tp[s] <- sum( (network$C[lower.tri(network$C)])[ SigInv[lower.tri(SigInv)]!=0 ] != 0 )
+	tn[s] <- sum( (network$C[lower.tri(network$C)])[ SigInv[lower.tri(SigInv)]==0 ] == 0 )
+	fp[s] <- sum( (network$C[lower.tri(network$C)])[ SigInv[lower.tri(SigInv)]==0 ] != 0 )
+	fn[s] <- sum( (network$C[lower.tri(network$C)])[ SigInv[lower.tri(SigInv)]!=0 ] == 0 )
 }
 
 # More Metrics
