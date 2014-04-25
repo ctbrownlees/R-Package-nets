@@ -18,27 +18,23 @@ fn     <- matrix( 0 , S , 1 )
 
 
 # SigInv
-nonzero <- rbinom(N*(N-1)/2,1,P.NZ)*runif(N*(N-1)/2)
-SigInv <- diag( 1 , N , N )
-count <- 1
-for (i in 1:(N-1))
+SigInv <- matrix( 0 , N , N )
+for (i in 2:N)
 {
-	for (j in (i+1):N)
+	for (j in 1:(i-1))
 	{
-		SigInv[i,j] <-  nonzero[count]
-		SigInv[j,i] <-  nonzero[count]
-		count = count+1	
+		SigInv[i,j] <- rbinom(1,1,P.NZ) 
+		SigInv[j,i] <- SigInv[i,j]
 	}
 }
-
+SigInv <- SigInv + diag( colSums(SigInv) + 1)
 
 for (s in 1:S)
 { 
+	cat('.')
 	y <- mvrnorm(T, rep(0,N) , solve(SigInv) )
 
 	network <- nets( y, type='pc' , lambda=seq(10,90,10) )
-
-
 
 	# Some Metrics
 	tp[s] <- sum( (network$C[lower.tri(network$C)])[ SigInv[lower.tri(SigInv)]!=0 ] != 0 )
@@ -46,6 +42,7 @@ for (s in 1:S)
 	fp[s] <- sum( (network$C[lower.tri(network$C)])[ SigInv[lower.tri(SigInv)]==0 ] != 0 )
 	fn[s] <- sum( (network$C[lower.tri(network$C)])[ SigInv[lower.tri(SigInv)]!=0 ] == 0 )
 }
+cat('\n')
 
 # More Metrics
 tpr <- tp / (tp + fn) 
