@@ -1,7 +1,8 @@
 
 .packageName <- "nets"
 
-nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , select='bic' , std=TRUE , verbose=FALSE ){
+nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , select='bic' , verbose=FALSE ){
+
 	# input check
 	if( !any( type==c('lrpc','pc','g') ) ){
 		stop("The 'type' parameter has to be set to either 'lrpc', 'pc' or 'g'")
@@ -22,11 +23,6 @@ nets <- function( y , type='lrpc' , algorithm='default' , p=1 , lambda=stop("shr
 	# input fix
 	# sort & unique  
 	lambda <- unique( sort( lambda ) )
-
-	# standardize the data
-	if( std==TRUE ){
-		for( i in 1:ncol(y) ) y[,i] <- (y[,i]-mean(y[,i]))/sd(y[,i])
-	}
 	
 	# redirect to the appropriate network estimation routine
 	network <- switch( type ,
@@ -407,6 +403,8 @@ alasso <- .nets.alasso
 	N <- ncol(y)
 	
 	results <- .C('space', theta=as.double(rep(0,N*(N-1)/2.0)) , ivar=as.double(rep(0,N)) , as.double(y), as.double(lambda), as.integer(M) , as.integer(N) , as.integer(verbose) , PACKAGE="nets" )
+
+	print( results$ivar )
 
 	# packaging results
 	K <- matrix( 0 , N , N )

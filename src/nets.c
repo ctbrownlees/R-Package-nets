@@ -293,7 +293,7 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 	lambda = *l;
 
 	if( verbose ) Rprintf("\nSPaCE Algorithm!\n");
-
+	
 	// allocate stuff
 	Y = Calloc(M,double*);
 	for( i=0; i<M; i++) { 
@@ -392,7 +392,7 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 				eps_1 = Y[k][i];
 				for( j=0; j<N; ++j ){
 					if( i==j ) continue;
-					eps_1 -= theta_cur[ (j<i)?(i*(i-1)/2+j):(j*(j-1)/2+i) ] * sqrt(ivar[j]/ivar[i]) * (Y[k][j]);
+					eps_1 -= theta_cur[ (j<i)?(i*(i-1)/2+j):(j*(j-1)/2+i) ] * sqrt(ivar[j]/ivar[i]) * ( Y[k][j] );
 				}
 				var += eps_1*eps_1;
 			}
