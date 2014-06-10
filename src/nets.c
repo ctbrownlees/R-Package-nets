@@ -271,6 +271,7 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 	int M, N;
 	double **Y;
 	double *theta_cur;
+	double *theta_act;
 	double toll;
 	double lambda;
 	double delta;
@@ -280,6 +281,8 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 	double m1, m2;
 	double cov, var;
 	double eps, eps_1, eps_2;
+
+	int n_active;
 
 	// 
 	maxiter_out = 5;
@@ -341,15 +344,28 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 	// space outer loop
 	for( iter_out=0 ; iter_out<maxiter_out ; ++iter_out ) {
 
+		n_active = 0;
+		for( i=1; i<N; ++i ) {
+			for( j=0; j<i-1; ++j ) {
+				theta_cur[ i*(i-1)/2+j ] = theta[ i*(i-1)/2+j ];
+				theta_act[i*(i-1)/2+j ] = (double)(theta[i*(i-1)/2+j ]!=0);
+				n_active    += (int) (theta[i*(i-1)/2+j ]!=0);
+			}
+		}		
+
+		if(verbose) Rprintf(" > outer iter: %d %d active parameters out of %d\n",iter_out+1,n_active,N);
+
 		// inner theta loop
 		for( iter_in=0 ; iter_in<maxiter_in ; ++iter_in ) {
 
 			// set current param
 			for( i=1; i<N; ++i ) for( j=0; j<i-1; ++j ) theta_cur[ i*(i-1)/2+j ] = theta[ i*(i-1)/2+j ];
 
-			// update
+			// Active Set UPDATE
 			for( i=1; i<N; ++i ){
 				for( j=0; j<i-1; ++j ){
+
+					if( theta_act[i*(i-1)/2+j]==0 ) continue;
 
 					// nasty bit!
 					cov = 0.0;
@@ -385,6 +401,41 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 			if( delta < toll ) break;
 		}
 
+		// set current param
+		for( i=1; i<N; ++i ) for( j=0; j<i-1; ++j ) theta_cur[ i*(i-1)/2+j ] = theta[ i*(i-1)/2+j ];
+
+		// Non Active Set UPDATE
+		for( i=1; i<N; ++i ){
+			for( j=0; j<i-1; ++j ){
+
+				if( theta_act[i*(i-1)/2+j]!=0 ) continue;
+
+				// nasty bit!
+				cov = 0.0;
+				var = 0.0;	
+				for( k=0; k<M; ++k ){
+					eps_1 = Y[k][i];
+					eps_2 = Y[k][j];
+					for( h=0; h<N; ++h ){
+						if( h==j || h==i ) continue;
+						eps_1 -= theta[ (h<i)?(i*(i-1)/2+h):(h*(h-1)/2+i) ] * sqrt(ivar[h]/ivar[i]) * (Y[k][h]);
+						eps_2 -= theta[ (h<j)?(j*(j-1)/2+h):(h*(h-1)/2+j) ] * sqrt(ivar[h]/ivar[j]) * (Y[k][h]);
+					}
+					cov += eps_1 * sqrt(ivar[j]/ivar[i]) * (Y[k][j]) + eps_2 * sqrt(ivar[i]/ivar[j]) * (Y[k][i]);
+					var += (ivar[j]/ivar[i])*(Y[k][j]*Y[k][j]) + (ivar[i]/ivar[j])*(Y[k][i]*Y[k][i]);
+				}
+				cov *= -2.0;
+				var *= +2.0;
+
+				// shoot!
+				if( abs(cov)>lambda ){
+					if( cov - lambda > 0 ) theta[i*(i-1)/2+j] = ( lambda-cov)/var;
+					if( cov + lambda < 0 ) theta[i*(i-1)/2+j] = (-lambda-cov)/var;
+				}
+				else theta[i*(i-1)/2+j] = 0.0;
+			}
+		}
+
 		// update variances
 		for( i=0; i<N; ++i ){
 			var = 0.0;	
@@ -399,6 +450,13 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 			var /= ((double) M);
 			ivar[i] = 1.0 / var;
 		}
+
+		// check for convergence
+		delta = 0.0;
+		for( i=1; i<N; ++i ) for( j=0; j<i-1; ++j ) delta += (theta_cur[i*(i-1)/2+j]-theta[i*(i-1)/2+j])*(theta_cur[i*(i-1)/2+j]-theta[i*(i-1)/2+j]); 
+		delta = sqrt( delta );	
+		if(verbose) Rprintf("iter: %3d toll: %f\n",iter_in+1,delta);
+		if( delta < toll ) break;
 
 	}
 
