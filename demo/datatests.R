@@ -17,8 +17,9 @@ for (i in 1:N)
 	{y[,i]=SP[,i+1]}
 
 chrono <- matrix (0,45,1)
-for (i in 41:45)
+for (i in 36:50)
 {
+yy <- matrix(0,T,i)
 yy <- y[,1:i]
 chrono[i] <- proc.time()[3]
 network <- nets( yy, type='pc', lambda=1000)
@@ -26,4 +27,6 @@ chrono[i] <- proc.time()[3]-chrono[i]
 networks = c(networks,network)
 }
 
-write.csv(chrono, file = "time1045.csv")
+plot(chrono)
+
+write.csv(chrono, file = "activetime1050.csv")

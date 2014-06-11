@@ -1,4 +1,7 @@
 *.pdf
+*.Rdata
+*.csv
+*.png
 
 Tests/Images
 src-i386
