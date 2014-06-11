@@ -306,7 +306,6 @@ void space(double *theta, double *ivar, double *y, double *l, int *m, int *n, in
 		}
 	}
 	theta_cur = Calloc(N*(N-1)/2,double);
-	theta_act = Calloc(N*(N-1)/2,double);
 
 	// init variances
 	for( i=0; i<N; ++i ){

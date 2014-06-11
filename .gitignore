@@ -1,5 +1,4 @@
 *.pdf
-*.Rdata
 
 Tests/Images
 src-i386
