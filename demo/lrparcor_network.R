@@ -53,11 +53,11 @@ for( t in 2:T ){ y[t,] = A %*% y[t-1,] + eps[t,] }
 network <- nets(y,p=1,lambda=1)
 
 # plot
-plot( network )
+#plot( network )
 
 #
-print( cbind( AdjLR , rep(NA,N) , network$Adj ) )
-cat('\n')
+#print( cbind( AdjLR , rep(NA,N) , network$Adj ) )
+#cat('\n')
 
-print( cbind( round(K.lr,2) , rep(NA,N) , round(network$KLR,2) ) )
-cat('\n')
+#print( cbind( round(K.lr,2) , rep(NA,N) , round(network$KLR,2) ) )
+#cat('\n')
