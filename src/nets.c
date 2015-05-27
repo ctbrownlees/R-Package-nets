@@ -1,8 +1,242 @@
 
 #include <R.h>
-
 #include <math.h>
 
+#define MAX(a,b)          (a>b?a:b)
+#define MIN(a,b)          (a<b?a:b)
+#define RHOIDX(i,j)       ( MAX(i,j)*(MAX(i,j)-1)/2 + MIN(i,j) )
+#define ALPIDX(i,j,p,N,P) ( p*N*N + i*N + j )
+
+double soft_thresholding(double c_yx,double c_xx,double lambda){
+    double theta;
+    if( c_yx > lambda/2 ){
+        theta = (lambda/2 - c_yx)/c_xx;
+    }
+    else if( c_yx < -lambda/2 ){
+        theta = (-lambda/2 - c_yx)/c_xx;
+    }
+    else{ // abs(c_yx) <= lambda/2
+        theta = 0;
+    }
+    return theta;
+}
+
+//
+void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *kk, int *v)
+{
+	// variables 
+	int T, N, P;
+	double **y;
+	double *y_aux, *x_aux;
+	double *alpha_old;
+	double *rho_old;
+	double delta, toll;
+	double lambda;
+	int iter, maxiter;
+	int verbose;
+	int t, i, j, k, p;
+	double rss, pen;
+	double c_yx, c_xx;
+  
+	// init
+	maxiter  = 100;
+	toll     = 1e-4;
+	verbose  = *v;
+	T = *_T;
+	N = *_N;
+ 	P = *_P;
+	lambda = *_lambda;
+
+	// allocate memory
+	y = Calloc(T,double*);
+	for( t=0; t<T; t++) { 
+		y[t] = Calloc(N,double); 
+		for( i=0; i<N; i++ ) {
+			y[t][i] = _y[ T * i + t ];
+		}
+	}
+
+	alpha_old = Calloc(N*N*P,double);
+	rho_old   = Calloc(N*(N-1)/2,double);
+	y_aux     = Calloc(T*N,double);
+	x_aux     = Calloc(T*N,double);
+
+	// Check A
+	//for(p=0;p<P;++p){
+	//	for(i=0;i<N;++i){
+	//		for(j=0;j<N;++j){
+	//			Rprintf( "%f, " , alpha[ ALPIDX(i,j,p,N,P) ]  );
+	//		}
+	//		Rprintf( "\n" );	
+	//	}
+	//	Rprintf( "\n" );
+	//}
+	//for( i=0;i<N*N*P; ++i) Rprintf( "%f, " , alpha[ i ]  );
+	//Rprintf( "\n" );
+
+	// Check R
+	//for(i=0;i<N;++i){
+	//	for(j=0;j<i;++j){
+	//		Rprintf( "%f, " , rho[ RHOIDX(i,j) ]  );
+	//	}
+	//	Rprintf( "\n" );	
+	//}
+	//for( i=0;i<N*(N-1)/2; ++i) Rprintf( "%f, " , rho[ i ]  );
+
+	// create residual
+	memset(y_aux,0,sizeof(double)*N*T);
+	for( i=0; i<N; ++i ){
+		for( t=P; t<T; ++t ){
+
+			y_aux[i*T+t] = y[t][i];
+
+			// A
+			for( j=0; j<N; ++j ){
+				for( p=0; p<P; ++p ){
+				  y_aux[i*T+t] -= alpha[ ALPIDX(i,j,p,N,P) ] * y[t-p-1][j];
+				}
+			}
+
+			// RHO
+			for( j=0; j<N; ++j){
+				if( j!=i ){
+					y_aux[i*T+t] -= rho[ RHOIDX(i,j) ] * sqrt(kk[i]/kk[j]) * y[t][j];
+					for( p=0; p<P; ++p ){
+						for( k=0; k<N; ++k ){
+							y_aux[i*T+t] += rho[ RHOIDX(i,j) ] * sqrt(kk[i]/kk[j]) * alpha[ ALPIDX(j,k,p,N,P) ] * y[t-p-1][k];
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// main loop
+	delta = 0.0;
+	for( iter=1; iter<=maxiter; ++iter ){
+
+		memcpy(alpha_old,alpha,sizeof(double)*(N*N*P));
+		memcpy(rho_old  ,rho  ,sizeof(double)*(N*(N-1)/2));
+
+		if( verbose ){
+
+			rss = 0;
+			pen = 0;
+			for( i=0; i<N*T; ++i )       rss += (y_aux[i])*(y_aux[i]);
+			for( i=0; i<N*N*P; ++i )     pen += lambda * alpha_weights[i] * fabs( alpha[i] );
+			for( i=0; i<N*(N-1)/2; ++i ) pen += lambda * rho_weights[i]   * fabs( rho[i] )  ;
+
+			Rprintf("Iter: %3.3d Rss %3.3f Pen %3.3f Obj %3.3f Delta: %f\n",iter,rss/(T*N),pen/(T*N),(rss+pen)/(T*N),delta);
+		}
+ 
+		// ALPHA 
+		for( i=0; i<N; ++i){
+			for( j=0; j<N; ++j){
+				for( p=0; p<P; ++p ){
+
+					// compute: y_aux, x_aux, c_yx, c_xx 
+					c_yx = 0;
+					c_xx = 0;
+					for( k=0; k<N; ++k ){
+						for( t=P; t<T; ++t ){
+							if( k==i ){
+								x_aux[ k*T+t ] = y[t-p-1][j];
+							}
+							else{
+								x_aux[ k*T+t ] = -rho[ RHOIDX(i,k) ] * sqrt(kk[k]/kk[i]) * y[t-p-1][j];
+							}
+	
+							y_aux[ k*T+t ] += alpha[ ALPIDX(i,j,p,N,P) ]*x_aux[ k*T+t ];
+	
+							c_yx -= y_aux[ k*T+t ] * x_aux[ k*T+t ];
+							c_xx += x_aux[ k*T+t ] * x_aux[ k*T+t ];
+						}
+					}
+
+					// update alpha
+					alpha[ ALPIDX(i,j,p,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,p,N,P)]);
+					//Rprintf("%d,%d,%d > c_yx %f c_xx %f lambda %f > alpha %f\n",i,j,p,c_yx,c_xx,lambda,alpha[ ALPIDX(i,j,p,N,P) ]);
+
+					// update y_aux (if new coeff is != 0) 
+					if( alpha[ ALPIDX(i,j,p,N,P) ] != 0.0 )
+					{
+						for( k=0; k<N; ++k ){
+							for( t=P; t<T; ++t ){          
+								y_aux[ k*T+t ] -= alpha[ ALPIDX(i,j,p,N,P) ]*x_aux[ k*T+t ];
+							}
+						}
+					}
+
+				}
+			}
+		}
+
+		// RHO
+		for( i=0; i<N; ++i){
+			for( j=0; j<i; ++j ){
+
+				// compute: y_aux, x_aux, c_yx, c_xx 
+				c_yx = 0;
+				c_xx = 0;
+	
+				memset(x_aux,0,sizeof(double)*N*T);				
+				for( t=P; t<T; ++t ){
+					
+					x_aux[ i*T+t ] = y[t][j];
+					x_aux[ j*T+t ] = y[t][i];
+
+					// resid
+					for( k=0; k<N; ++k ){
+						for( p=0; p<P; ++p ){
+							x_aux[ i*T+t ] -= alpha[ ALPIDX(j,k,p,N,P) ] * y[t-p-1][k];
+							x_aux[ j*T+t ] -= alpha[ ALPIDX(i,k,p,N,P) ] * y[t-p-1][k];
+						}
+					}
+					x_aux[ i*T+t ] = sqrt(kk[j]/kk[i]) * x_aux[ i*T+t ];
+					x_aux[ j*T+t ] = sqrt(kk[i]/kk[j]) * x_aux[ j*T+t ];
+
+					y_aux[ i*T+t ] += rho[ RHOIDX(i,j) ] * x_aux[ i*T+t ];
+					y_aux[ j*T+t ] += rho[ RHOIDX(i,j) ] * x_aux[ j*T+t ];
+	
+					c_yx -= y_aux[ i*T+t ] * x_aux[ i*T+t ] + y_aux[ j*T+t ] * x_aux[ j*T+t ];
+					c_xx += x_aux[ i*T+t ] * x_aux[ i*T+t ] + x_aux[ j*T+t ] * x_aux[ j*T+t ];
+				}
+
+				// update alpha
+				rho[ RHOIDX(i,j) ] = soft_thresholding(c_yx,c_xx,lambda*rho_weights[RHOIDX(i,j)] ); 
+				//Rprintf("%d,%d > c_yx %f c_xx %f lambda %f > rho %f\n",i,j,c_yx,c_xx,lambda,rho[RHOIDX(i,j)]);
+
+				// update y_aux (if new coeff is != 0) 
+				if( rho[ RHOIDX(i,j) ] != 0.0 )
+				{
+					for( t=P; t<T; ++t ){          
+						y_aux[ i*T+t ] -= rho[ RHOIDX(i,j) ] * x_aux[ i*T+t ];
+						y_aux[ j*T+t ] -= rho[ RHOIDX(i,j) ] * x_aux[ j*T+t ];
+					}
+				}
+
+			}
+		}
+    
+		// check for convergence
+		delta = 0;
+		for( i=0; i<N*N*P ; ++i ){ delta += fabs(alpha[i]-alpha_old[i]); }
+		for( i=0; i<N*(N-1)/2; ++i ){ delta += fabs(rho[i]-rho_old[i]); }
+		if( delta<toll ) break;
+	}
+  
+	// clean up	
+	for(t = 0; t < T; t++){ Free(y[t]); }
+	Free(y);
+	Free(alpha_old);
+	Free(rho_old);
+	Free(y_aux);
+	Free(x_aux);
+	
+}
+
+
+/////////// OLD STUFF
 char prog_indicator[] = {'-','\\','|','/','-','\\','|','/'};
 
 // utility

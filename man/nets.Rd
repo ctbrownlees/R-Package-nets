@@ -4,15 +4,11 @@
 \alias{plot.nets}
 \title{Network Estimation for Time Series}
 \description{`nets` is used to fit sparse long run partial correlation networks for time series using the NETS algorithm as well as other types of sparse networks.}
-\usage{ nets( y , type='lrpc' , algorithm='default' , p=1 , lambda , select='bic' , std=TRUE , verbose=FALSE ) }
+\usage{ nets( y , p=1 , lambda , verbose=FALSE ) }
 \arguments{
 \item{y}{data, an T x N matrix, each column being a data time series.}
-\item{type}{network type: Long Run Partial Correlation (lrpc), Partial Correlation (pc) or Granger (g)}
 \item{p}{VAR order (for Granger)}
-\item{algorithm}{Optimization algorithm to be used.}
 \item{lambda}{shrinkage parameter(s)}
-\item{select}{selection criteria: BIC (bic, default) or AIC (aic)}
-\item{std}{standardise variables before estimating the network (TRUE or FALSE). The default is TRUE.}
 \item{verbose}{extra output messages} }
 \details{The nets procedure can be used to fit long run partial correlation networks, partial correlation and Granger networks.}
 \value{
@@ -51,11 +47,11 @@ for( t in 2:T ){
 	}
 }
 
-network <- nets(y,type='g',lambda=1:5,verbose=TRUE)
+network <- nets(y,p=1,lambda=1,verbose=TRUE)
 
-network
+#network
 
-plot( network )
+#plot( network )
 
 }
 \keyword{network}

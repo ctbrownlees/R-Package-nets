@@ -24,7 +24,7 @@ readline("Type <Return> to Continue")
 # Estimate Network 
 cat('Estimating Granger Network...')
 
-network <- nets( y, p=1, type='g', lambda=c( seq(1,20,0.5) ) , std=FALSE )
+#network <- nets( y, p=1, type='g', lambda=c( seq(1,20,0.5) ) , std=FALSE )
 
 cat('done!\n')
 

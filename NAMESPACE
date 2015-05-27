@@ -2,7 +2,5 @@
 useDynLib(nets)
 
 export(nets)
-export(alasso)
-
 S3method(print,nets)
 S3method(plot,nets)

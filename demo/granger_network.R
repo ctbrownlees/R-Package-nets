@@ -26,7 +26,7 @@ for( t in 2:T ){ y[t,] = A %*% y[t-1,] + eps[t,] }
 plot( y )
 
 # estimate Network 
-network <- nets( y, p=1, type='g', lambda=c( 0, seq(1,10,0.5), 10 ) , std=FALSE )
+#network <- nets( y, p=1, type='g', lambda=c( 0, seq(1,10,0.5), 10 ) , std=FALSE )
 
 # estimation details
 network

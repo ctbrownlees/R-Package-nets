@@ -18,7 +18,7 @@ SigInv[6,1] <-  0.00; SigInv[6,2] <-  0.00; SigInv[6,3] <-  0.00; SigInv[6,4] <-
 
 y <- mvrnorm(T, rep(0,N) , solve(SigInv) )
 
-network <- nets( y, type='pc' , lambda=80 )
+#network <- nets( y, type='pc' , lambda=80 )
 
 print( cbind( SigInv , rep(NA,N) , round(network$C,2) ) )
 cat('\n')
