@@ -82,6 +82,23 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
   obj$alpha.hat <- run$alpha 
   obj$rho.hat   <- run$rho
 	
+  #
+  I.n <- diag(N)
+  CPCN  <- -diag( diag(C.hat)**(-0.5) ) %*% C.hat %*% diag( diag(C.hat)**(-0.5) )
+	CPCN[row(I.n) == col(I.n) ] <- 1
+  DGN <- matrix(0,N,N)
+  for( p in 1:P ){
+    DGN <- DGN + A.hat[,,p]
+  }
+	DGN[row(I.n) == col(I.n) ] <- 0
+  KL    <- t(I.n-DGN ) %*% C.hat %*% ( I.n-DGN )
+  LRPCN <- -diag( diag(KL)**(-0.5) ) %*% KL %*% diag( diag(KL)**(-0.5) )
+	LRPCN[row(I.n) == col(I.n) ] <- 1
+  
+  obj$CPCN   <- CPCN
+  obj$DGN    <- DGN
+	obj$LRPCN  <- LRPCN
+  
 	return(obj)
 }
 
