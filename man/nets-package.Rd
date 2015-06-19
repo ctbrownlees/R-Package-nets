@@ -2,16 +2,16 @@
 \alias{nets-package}
 \docType{package}
 \title{Network Estimator for Time Series}
-\description{The NETS package provides a comprehensive set of procedures for the estimation and analysis of sparse networks for time series data.}
+\description{The NETS package provides routines for network estimation for multivariate time series }
 \details{
 \tabular{ll}{
 Package: \tab nets\cr
 Type: \tab Package\cr
-Version: \tab 0.2\cr
-Date: \tab 2013-03-03\cr
+Version: \tab 0.3\cr
+Date: \tab 2015-05-28\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
-} }
+}}
 \author{
 Christian Brownlees 
 

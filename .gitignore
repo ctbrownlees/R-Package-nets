@@ -2,8 +2,6 @@
 *.Rdata
 *.csv
 *.png
-
-Tests/Images
-src-i386
-src-x64
+*.Rproj
 .Rproj.user
+.Rbuildignore

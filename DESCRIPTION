@@ -6,6 +6,6 @@ Date: 2015-05-28
 Author: Christian Brownlees
 Maintainer: Christian Brownlees <christian.brownlees@upf.edu>
 Depends: igraph
-Description: The package provides routines for the estimation and analysis of networks for multivariate time series 
+Description: The package provides routines for network estimation for multivariate time series 
 License: GPL 
 LazyLoad: yes

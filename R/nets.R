@@ -13,11 +13,14 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
 	if( !is.logical(verbose) ){
 		stop("The 'verbose' parameter has to be TRUE or FALSE")
 	}
-		
+
+  # define variables
+  labels <- dimnames(y)[[2]]
 	T <- nrow(y)
 	N <- ncol(y)
   P <- p
 	
+  # pre-estimation
 	x.aux <- matrix( 0 , T , N*P )
 	for( p in 1:P ){
 	  x.aux[(p+1):T, ((p-1)*N+1):(p*N) ] <- y[1:(T-p),]
@@ -38,6 +41,7 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
 	alp.weights <- 1/abs(alpha)
 	rho.weights <- 1/abs(rho)
 	
+  # call nets
 	run <- .C("nets",
 	          alpha        =as.double(alpha),
 	          rho          =as.double(rho), 
@@ -51,20 +55,34 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
 	          kk           =as.double(kk),
 	          v            =as.integer(verbose) )
 	
+  # package results
 	A.hat <- array(0,dim=c(N,N,P))
 	for( p in 1:P ){
 	  for( i in 1:N ){
 	    A.hat[i,,p] <- run$alpha[ ((p-1)*N*N+(i-1)*N+1):((p-1)*N*N+i*N) ]
 	  }
 	}
-	P.hat <- matrix(0,N,N)
-	P.hat[ lower.tri(matrix(0,N,N)) ] <- run$rho
-	K.hat <- run$kk
+	C.hat <- matrix(0,N,N)
+  P.hat <- matrix(0,N,N)
+  for( i in 1:N ){
+   C.hat[i,i] <- run$kk[i]
+   for( j in setdiff(1:N,i) ){
+       c_ij       <-  -run$rho[ (max(i,j)-1)*(max(i,j)-2)/2 + min(i,j) ] * sqrt( run$kk[i] * run$kk[j] )
+       C.hat[i,j] <- c_ij
+       C.hat[j,i] <- c_ij
+    }
+  }
+	#dimnames(A.hat)[[1]] <- labels
+	#dimnames(A.hat)[[2]] <- labels
+
+	obj <- list( )
+	class(obj)    <- 'nets'
+	obj$A.hat     <- A.hat 
+  obj$C.hat     <- C.hat 
+  obj$alpha.hat <- run$alpha 
+  obj$rho.hat   <- run$rho
 	
-	network <- list( A.hat=A.hat , P.hat=P.hat , K.hat=K.hat , alpha.hat=run$alpha , rho.hat=run$rho )
-	class(network) <- 'nets'
-	
-	network
+	return(obj)
 }
 
 plot.nets <- function( x , ... ){ 
@@ -80,7 +98,7 @@ plot.nets <- function( x , ... ){
 	}
 
 	if( what=='graph' ){
-		# ugh! 
+		# ugh!
 		plot( x$ig )
 	}
 	if( what=='ctrace' ){

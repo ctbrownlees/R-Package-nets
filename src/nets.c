@@ -90,7 +90,7 @@ void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights
 
 			y_aux[i*T+t] = y[t][i];
 
-			// A
+			// ALPHA
 			for( j=0; j<N; ++j ){
 				for( p=0; p<P; ++p ){
 				  y_aux[i*T+t] -= alpha[ ALPIDX(i,j,p,N,P) ] * y[t-p-1][j];

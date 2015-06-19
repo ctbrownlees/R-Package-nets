@@ -3,14 +3,14 @@
 \alias{print.nets}
 \alias{plot.nets}
 \title{Network Estimation for Time Series}
-\description{`nets` is used to fit sparse long run partial correlation networks for time series using the NETS algorithm as well as other types of sparse networks.}
+\description{`nets` is used to fit sparse VARs using the NETS algorithm.}
 \usage{ nets( y , p=1 , lambda , verbose=FALSE ) }
 \arguments{
-\item{y}{data, an T x N matrix, each column being a data time series.}
-\item{p}{VAR order (for Granger)}
+\item{y}{data, an T x N matrix, each column being a time series.}
+\item{p}{VAR order}
 \item{lambda}{shrinkage parameter(s)}
 \item{verbose}{extra output messages} }
-\details{The nets procedure can be used to fit long run partial correlation networks, partial correlation and Granger networks.}
+\details{The nets procedure estimates sparse VARs. The routine can be used to estimate long run partial correlation networks, partial correlation networks and Granger networks.}
 \value{
 	The ‘nets’ procedure returns an object of class ‘"nets"’
 
@@ -19,12 +19,12 @@
 
 	An object of class ‘"nets"’ is a list containing at least the following components:
 
-	T: number of observations in the panel
-
-	Adj: adjacency matrix of the network
+	A.hat: an N x N x P array of VAR matrix parameters
+  
+  C.hat:
 }
 \references{
-Barigozzi, M. and Brownlees, C. (2012) NETS: Network Estimation for Time Series
+Barigozzi, M. and Brownlees, C. (2015) NETS: Network Estimation for Time Series
 }
 \author{Christian Brownlees}
 \examples{

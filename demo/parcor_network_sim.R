@@ -63,4 +63,3 @@ for( i in 1:nlambda ){
 plot( fpr , tpr , t='l' , main='ROC' , col='darkblue' , lwd=3 , ylim=c(0,1) , xlim=c(0,1))
 
 plot( lambda.range , colMeans(mse) , t='l' , main='MSE' , col='darkblue' , lwd=3 )
-
