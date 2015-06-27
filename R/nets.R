@@ -15,10 +15,15 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
 	}
 
   # define variables
-  labels <- dimnames(y)[[2]]
 	T <- nrow(y)
 	N <- ncol(y)
-  P <- p
+	P <- p
+	
+  if( !is.null(dimnames(y)[[2]]) ){
+    labels <- dimnames(y)[[2]]
+  } else {
+    labels <- paste('V',1:N,sep='')
+  }
 	
   # pre-estimation
 	x.aux <- matrix( 0 , T , N*P )
@@ -72,9 +77,11 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
        C.hat[j,i] <- c_ij
     }
   }
-	#dimnames(A.hat)[[1]] <- labels
-	#dimnames(A.hat)[[2]] <- labels
-
+	dimnames(A.hat)[[1]] <- labels
+	dimnames(A.hat)[[2]] <- labels
+	dimnames(C.hat)[[1]] <- labels
+	dimnames(C.hat)[[2]] <- labels
+	  
 	obj <- list( )
 	class(obj)    <- 'nets'
 	obj$A.hat     <- A.hat 
@@ -95,10 +102,10 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
   LRPCN <- -diag( diag(KL)**(-0.5) ) %*% KL %*% diag( diag(KL)**(-0.5) )
 	LRPCN[row(I.n) == col(I.n) ] <- 1
   
-  obj$CPCN   <- CPCN
-  obj$DGN    <- DGN
-	obj$LRPCN  <- LRPCN
-  
+  obj$cpc.net         <- CPCN
+  obj$dgranger.net    <- DGN
+	obj$lrpc.net        <- LRPCN
+
 	return(obj)
 }
 
