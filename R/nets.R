@@ -14,18 +14,20 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
 		stop("The 'verbose' parameter has to be TRUE or FALSE")
 	}
 
-  # define variables
+	# define variables
 	T <- nrow(y)
 	N <- ncol(y)
 	P <- p
+	if( !is.null(dimnames(y)[[2]]) ){
+		labels <- dimnames(y)[[2]]
+	} else {
+		labels <- paste('V',1:N,sep='')
+	}
 	
-  if( !is.null(dimnames(y)[[2]]) ){
-    labels <- dimnames(y)[[2]]
-  } else {
-    labels <- paste('V',1:N,sep='')
-  }
-	
-  # pre-estimation
+	# switch network type, AC, A or C
+
+	# pre-estimation
+	# ADD CHECK T>N*P
 	x.aux <- matrix( 0 , T , N*P )
 	for( p in 1:P ){
 	  x.aux[(p+1):T, ((p-1)*N+1):(p*N) ] <- y[1:(T-p),]
@@ -58,6 +60,8 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
 	          N            =as.integer(N),
 	          P            =as.integer(P),
 	          kk           =as.double(kk),
+	          doA          =as.integer(1),
+	          doB          =as.integer(1),
 	          v            =as.integer(verbose) )
 	
   # package results

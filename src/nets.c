@@ -22,7 +22,7 @@ double soft_thresholding(double c_yx,double c_xx,double lambda){
 }
 
 //
-void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *kk, int *v)
+void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *kk, int *doA, int *doC, int *v)
 {
 	// variables 
 	int T, N, P;
