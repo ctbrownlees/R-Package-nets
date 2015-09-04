@@ -1,7 +1,7 @@
 
 .packageName <- "nets"
 
-nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE ){
+nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE ){
 
 	# input check
 	if( !is.data.frame(y) & !is.matrix(y) ){
@@ -13,6 +13,9 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
 	if( !is.logical(verbose) ){
 		stop("The 'verbose' parameter has to be TRUE or FALSE")
 	}
+  if( GN==FALSE & CN==FALSE ){
+    stop("At least A or G have to be true")  
+  }
 
 	# define variables
 	T <- nrow(y)
@@ -24,91 +27,149 @@ nets <- function( y , p=1 , lambda=stop("shrinkage parameter 'lambda' has not be
 		labels <- paste('V',1:N,sep='')
 	}
 	
-	# switch network type, AC, A or C
-
 	# pre-estimation
-	# ADD CHECK T>N*P
-	x.aux <- matrix( 0 , T , N*P )
-	for( p in 1:P ){
-	  x.aux[(p+1):T, ((p-1)*N+1):(p*N) ] <- y[1:(T-p),]
+	if( T>N*P ){
+	  if( GN == TRUE ){
+	    x.aux <- matrix( 0 , T , N*P )
+	    for( p in 1:P ){
+	      x.aux[(p+1):T, ((p-1)*N+1):(p*N) ] <- y[1:(T-p),]
+	    }
+	    
+	    reg <- lm( y ~ 0+x.aux )
+      A     <- coef(reg)
+	    eps   <- reg$resid
+	    
+	    alpha <- c()
+	    for( p in 1:P ){
+	      alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
+	    }
+	    alpha.weights <- 1/abs(alpha)
+      
+	    # warmup
+      for( i in 1:N ){
+        for( j in 1:N ){
+          for( p in 1:P ){
+            trim <- cor.test( y[(p+1):T,i] , y[1:(T-p),j] )$p.value < 0.10
+            A[(p-1)*N+j,i] <- A[(p-1)*N+j,i] * trim
+          }
+        }        
+      }
+	    alpha <- c()
+	    for( p in 1:P ){
+	      alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
+	    }
+	    
+	  }
+	  else{
+	    eps           <- y
+	    alpha         <- c()
+	    alpha.weights <- c()
+	  }
+	  
+	  if( CN == TRUE ){
+	    C.hat       <- solve( cov(eps) )
+	    c.hat       <- diag(C.hat)
+	    PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )
+
+      rho         <- PC[ lower.tri(PC) ]
+      rho.weights <- 1/abs(rho)
+
+      # warmup
+      for( i in 2:N ){
+        for( j in 1:(i-1) ){
+          PC[i,j] <- PC[i,j] * (cor.test(eps[,i],eps[,j])$p.value < 0.1)
+        }
+      }
+	    rho         <- PC[ lower.tri(PC) ]
+	  }
+	  else{
+	    rho         <- c()
+	    rho.weights <- c()
+	  }
 	}
-	
-	reg <- lm( y ~ 0+x.aux )
-	
-	alpha <- c()
-	for( p in 1:P ){
-	  alpha <- c( alpha , ( coef(reg)[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
-	}
-	
-	K.hat <- solve( cov(reg$resid) )
-	kk    <- diag(K.hat)
-	PC    <- -diag( kk**(-0.5) ) %*% K.hat %*% diag( kk**(-0.5) )
-	rho   <- PC[ lower.tri(PC) ]
-	
-	alp.weights <- 1/abs(alpha)
-	rho.weights <- 1/abs(rho)
+	else{
+	  stop("Not implemented yet")
+	}	
+  
+  #print( alpha )
+  #print( rho )
 	
   # call nets
-	run <- .C("nets",
+	run <- .C("nets3",
 	          alpha        =as.double(alpha),
 	          rho          =as.double(rho), 
-	          alpha.weights=as.double(alp.weights),
+	          alpha.weights=as.double(alpha.weights),
 	          rho.weights  =as.double(rho.weights),
 	          lambda       =as.double(lambda),
 	          y            =as.double(y),
 	          T            =as.integer(T),
 	          N            =as.integer(N),
 	          P            =as.integer(P),
-	          kk           =as.double(kk),
-	          doA          =as.integer(1),
-	          doB          =as.integer(1),
+	          c.hat        =as.double(c.hat),
+	          GN           =as.integer(GN),
+	          CN           =as.integer(CN),
 	          v            =as.integer(verbose) )
-	
-  # package results
-	A.hat <- array(0,dim=c(N,N,P))
-	for( p in 1:P ){
-	  for( i in 1:N ){
-	    A.hat[i,,p] <- run$alpha[ ((p-1)*N*N+(i-1)*N+1):((p-1)*N*N+i*N) ]
-	  }
-	}
-	C.hat <- matrix(0,N,N)
-  P.hat <- matrix(0,N,N)
-  for( i in 1:N ){
-   C.hat[i,i] <- run$kk[i]
-   for( j in setdiff(1:N,i) ){
-       c_ij       <-  -run$rho[ (max(i,j)-1)*(max(i,j)-2)/2 + min(i,j) ] * sqrt( run$kk[i] * run$kk[j] )
-       C.hat[i,j] <- c_ij
-       C.hat[j,i] <- c_ij
-    }
-  }
-	dimnames(A.hat)[[1]] <- labels
-	dimnames(A.hat)[[2]] <- labels
-	dimnames(C.hat)[[1]] <- labels
-	dimnames(C.hat)[[2]] <- labels
-	  
-	obj <- list( )
-	class(obj)    <- 'nets'
-	obj$A.hat     <- A.hat 
-  obj$C.hat     <- C.hat 
-  obj$alpha.hat <- run$alpha 
-  obj$rho.hat   <- run$rho
-	
-  #
-  I.n <- diag(N)
-  CPCN  <- -diag( diag(C.hat)**(-0.5) ) %*% C.hat %*% diag( diag(C.hat)**(-0.5) )
-	CPCN[row(I.n) == col(I.n) ] <- 1
-  DGN <- matrix(0,N,N)
-  for( p in 1:P ){
-    DGN <- DGN + A.hat[,,p]
-  }
-	DGN[row(I.n) == col(I.n) ] <- 0
-  KL    <- t(I.n-DGN ) %*% C.hat %*% ( I.n-DGN )
-  LRPCN <- -diag( diag(KL)**(-0.5) ) %*% KL %*% diag( diag(KL)**(-0.5) )
-	LRPCN[row(I.n) == col(I.n) ] <- 1
   
-  obj$cpc.net         <- CPCN
-  obj$dgranger.net    <- DGN
-	obj$lrpc.net        <- LRPCN
+  # package results
+	obj <- list()
+	class(obj)    <- 'nets'
+	obj$T         <- T
+	obj$N         <- N
+	obj$P         <- P
+	obj$lambda    <- lambda
+	
+  if( GN == TRUE ){
+  	A.hat <- array(0,dim=c(N,N,P))
+  	for( p in 1:P ){
+  	  for( i in 1:N ){
+  	    A.hat[i,,p] <- run$alpha[ ((p-1)*N*N+(i-1)*N+1):((p-1)*N*N+i*N) ]
+	    }
+	  }
+  	dimnames(A.hat)[[1]] <- labels
+  	dimnames(A.hat)[[2]] <- labels    
+  	obj$A.hat     <- A.hat 
+  	obj$alpha.hat <- run$alpha 
+  }
+  if( CN == TRUE ){
+	  C.hat <- matrix(0,N,N)
+    for( i in 1:N ){
+      C.hat[i,i] <- run$c[i]
+      for( j in setdiff(1:N,i) ){
+        c_ij       <- -run$rho[ (max(i,j)-1)*(max(i,j)-2)/2 + min(i,j) ] * sqrt( run$c.hat[i] * run$c.hat[j] )
+        C.hat[i,j] <- c_ij
+        C.hat[j,i] <- c_ij
+      }
+    }
+	  dimnames(C.hat)[[1]] <- labels
+	  dimnames(C.hat)[[2]] <- labels
+	  obj$C.hat     <- C.hat 
+	  obj$rho.hat   <- run$rho
+  }
+  
+  # networks
+  I.n <- diag(N)
+  
+  if( CN == TRUE ){
+    PCN  <- -diag( diag(C.hat)**(-0.5) ) %*% C.hat %*% diag( diag(C.hat)**(-0.5) )
+	  PCN[row(I.n) == col(I.n) ] <- 1
+    obj$pc.net          <- PCN
+  }
+  
+  if( GN == TRUE ){
+    DGN <- matrix(0,N,N)
+    for( p in 1:P ){
+      DGN <- DGN + A.hat[,,p]
+    }
+	  DGN[row(I.n) == col(I.n) ] <- 0
+    obj$dgranger.net    <- DGN
+  }
+  
+  if( CN == TRUE && GN==TRUE ){
+    KL    <- t(I.n-DGN ) %*% C.hat %*% ( I.n-DGN )
+    LRPCN <- -diag( diag(KL)**(-0.5) ) %*% KL %*% diag( diag(KL)**(-0.5) )
+	  LRPCN[row(I.n) == col(I.n) ] <- 1
+	  obj$lrpc.net        <- LRPCN
+  }
 
 	return(obj)
 }
@@ -156,21 +217,20 @@ plot.nets <- function( x , ... ){
 }
 
 print.nets <- function( x , ... ) {
+   	cat( ' Time Series Dimension: T=',x$T,' N=',x$N,'\n',sep='')
+   	cat( ' VAR Lags P=',x$P,'\n',sep='')
+}
 
-	labels <- list( lrpc='Long Run Partial Correlation' , pc='Partial Correlation' , g='Granger' )
+plot.nets <- function( x ){
+  print('plot')
+}
 
-	if( x$type=='g' ){ 
-		nedge <- sum( x$Adj ); 
-		medge <- x$N^2 
-	}  
-	else { 
-		nedge <- sum( x$Adj[ lower.tri(x$Adj) ]!=0 ); 
-		medge <- ((x$N-1)*x$N)/2.0
-	}
+summary.nets <- function( x , ... ) {
+  print('summary.nets')
+  class(x) <- 'summary.nets'
+  return(x)
+}
 
-	cat( ' Network Type: ' , labels[[ x$type ]] , '\n' , sep='' )
-	cat( ' Time Series Dimension: T=',network$T,' N=',network$N,'\n',sep='')
-	if( network$L > 1) cat( ' Regularization Method: ',network$criterion,'\n',sep='')
-	cat( '\n')
-	cat( ' Number of Detected Edges: ' , nedge , ' (' , round( (nedge/medge)*100 , 1 ) , '%)\n' , sep='' )
+print.summary.nets <- function( x , ... ){
+  print('summary nets')
 }
