@@ -95,7 +95,7 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
   #print( rho )
 	
   # call nets
-	run <- .C("nets3",
+	run <- .C("nets",
 	          alpha        =as.double(alpha),
 	          rho          =as.double(rho), 
 	          alpha.weights=as.double(alpha.weights),

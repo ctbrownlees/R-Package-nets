@@ -551,7 +551,7 @@ void alpha_update2(double *alpha, int i, int j, int k, double **C_y, double *rho
 			}
 		}	
 
-		if( l != i ) c_yx -= rho[ RHOIDX(i,l) ]*rho[ RHOIDX(i,l) ] * c[l]/c[i] * C_y[i][l];
+		if( l != i ) c_yx -= rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * C_y[i][l];
 
 		// cov xx
 		if( l==i ){
