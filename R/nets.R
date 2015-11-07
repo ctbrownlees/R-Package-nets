@@ -28,72 +28,44 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	}
 	
 	# pre-estimation
-	if( T>N*P ){
-	  if( GN == TRUE ){
-	    x.aux <- matrix( 0 , T , N*P )
-	    for( p in 1:P ){
-	      x.aux[(p+1):T, ((p-1)*N+1):(p*N) ] <- y[1:(T-p),]
-	    }
-	    
-	    reg <- lm( y ~ 0+x.aux )
-      A     <- coef(reg)
-	    eps   <- reg$resid
-	    
-	    alpha <- c()
-	    for( p in 1:P ){
-	      alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
-	    }
-	    alpha.weights <- 1/abs(alpha)
-      
-	    # warmup
-      for( i in 1:N ){
-        for( j in 1:N ){
-          for( p in 1:P ){
-            trim <- cor.test( y[(p+1):T,i] , y[1:(T-p),j] )$p.value < 0.10
-            A[(p-1)*N+j,i] <- A[(p-1)*N+j,i] * trim
-          }
-        }        
-      }
-	    alpha <- c()
-	    for( p in 1:P ){
-	      alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
-	    }
-	    
-	  }
-	  else{
-	    eps           <- y
-	    alpha         <- c()
-	    alpha.weights <- c()
+	if( T < N*P ){ stop("Not implemented yet") }
+    
+	if( GN == TRUE ){
+	  x.aux <- matrix( 0 , T , N*P )
+	  for( p in 1:P ){
+	    x.aux[(p+1):T, ((p-1)*N+1):(p*N) ] <- y[1:(T-p),]
 	  }
 	  
-	  if( CN == TRUE ){
-	    C.hat       <- solve( cov(eps) )
-	    c.hat       <- diag(C.hat)
-	    PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )
-
-      rho         <- PC[ lower.tri(PC) ]
-      rho.weights <- 1/abs(rho)
-
-      # warmup
-      for( i in 2:N ){
-        for( j in 1:(i-1) ){
-          PC[i,j] <- PC[i,j] * (cor.test(eps[,i],eps[,j])$p.value < 0.1)
-        }
-      }
-	    rho         <- PC[ lower.tri(PC) ]
+	  reg <- lm( y ~ 0+x.aux )
+	  A     <- coef(reg)
+	  eps   <- reg$resid
+	  
+	  alpha <- c()
+	  for( p in 1:P ){
+	    alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
 	  }
-	  else{
-	    rho         <- c()
-	    rho.weights <- c()
-	  }
+	  alpha.weights <- 1/abs(alpha)
+	} else {
+	  eps           <- y
+	  alpha         <- c()
+	  alpha.weights <- c()
 	}
-	else{
-	  stop("Not implemented yet")
-	}	
-  
-  #print( alpha )
-  #print( rho )
-	
+    
+	if( CN == TRUE ){
+	  C.hat       <- solve( cov(eps) )
+	  c.hat       <- diag(C.hat)
+	  PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )
+	  
+	  rho         <- PC[ lower.tri(PC) ]
+	  rho.weights <- 1/abs(rho)
+	  rho.weights <- rep(1,length(rho))
+	} else {
+	  c.hat       <- rep(1,N)
+	  
+	  rho         <- rep(0,N*(N-1)/2)
+	  rho.weights <- rep(1,N*(N-1)/2)
+	}
+  	
   # call nets
 	run <- .C("nets",
 	          alpha        =as.double(alpha),
