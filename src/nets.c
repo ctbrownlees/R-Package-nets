@@ -39,7 +39,7 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 		for( kp=0; kp<P; ++kp ){
 			for( jp=0; jp<N; ++jp ){
 
-				c_tmp = ( (k-kp)>=0 ) ? ( C_y[k-kp][j][jp] ):( C_y[kp-k][jp][j] );
+				c_tmp = ( (k-kp)>=0 ) ? ( C_y[k-kp][jp][j] ):( C_y[kp-k][j][jp] );
 
 				if( ip == i ){
 					c_yx += -alpha[ ALPIDX(ip,jp,kp,N,P) ] * c_tmp;
@@ -114,7 +114,7 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 
 	Free( x_aux );
 	Free( y_aux );
-
+	
 	// update alpha
 	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
@@ -228,7 +228,7 @@ void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights
 	}
 
 	// check! 
-	nets_sanity_check(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,granger_network,parcorr_network,C_y,C_eps);
+	//nets_sanity_check(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,granger_network,parcorr_network,C_y,C_eps);
 
 	// main loop
 	delta = 0.0;
@@ -568,7 +568,7 @@ void nets_log(double **y, double *alpha, double *rho, double lambda, double *alp
 
 	int i;
 	double pen = 0;
-	int nnz= 0;
+	double nnz = 0;
       
 	for( i=0; i<N*N*P; ++i ){     
         	pen += lambda * alpha_weights[i] * fabs( alpha[i] );
@@ -576,7 +576,7 @@ void nets_log(double **y, double *alpha, double *rho, double lambda, double *alp
 	}
 	for( i=0; i<N*(N-1)/2; ++i ){ 
         	pen += lambda * rho_weights[i]   * fabs( rho[i] ); 
-	        nnz+= fabs(rho[i])>0?1:0;
+	        nnz += fabs(rho[i])>0?1:0;
 	}
 
 	Rprintf(" Iter: %4.4d"   , iter );  
