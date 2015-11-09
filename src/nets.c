@@ -34,12 +34,12 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 	for( ip=0; ip<N; ++ip ){
 
 		if( ip == i ) c_yx += C_y[1+k][i][j];
-		else          c_yx += - rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[1+k][i][j];
+		else          c_yx += -rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[1+k][i][j];
 
 		for( kp=0; kp<P; ++kp ){
 			for( jp=0; jp<N; ++jp ){
 
-				c_tmp = kp-k>0? C_y[kp-k][jp][j] : C_y[k-kp][jp][j];
+				c_tmp = ( (k-kp)>=0 ) ? ( C_y[k-kp][j][jp] ):( C_y[kp-k][jp][j] );
 
 				if( ip == i ){
 					c_yx += -alpha[ ALPIDX(ip,jp,kp,N,P) ] * c_tmp;
@@ -65,7 +65,7 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 		}
 
 		if( ip==i ){
-			c_yx += +alpha[ ALPIDX(i,j,k,N,P) ] * C_y[1+k][i][j];
+			c_yx += +alpha[ ALPIDX(i,j,k,N,P) ] * C_y[0][j][j];
 			c_xx += C_y[0][j][j];
 		}
 		else {
@@ -74,7 +74,7 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 	}
 	
 	// update alpha
-	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",i,j,k,c_yx/(T*N),c_xx/(T*N),c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
+	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
 	//alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
 	// compute: y_aux, x_aux, c_yx, c_xx
@@ -118,60 +118,9 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 	// update alpha
 	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
-	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",i,j,k,c_yx/(T*N),c_xx/(T*N),c_yx/c_xx,alpha[ ALPIDX(i,j,k,N,P) ]);
+	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,alpha[ ALPIDX(i,j,k,N,P) ]);
 
 }
-
-// ALPHA update
-void alpha_update_long(double *alpha, int i, int j, int k, double ***C_y, double *rho, double *c, double lambda, double *alpha_weights, int T, int N, int P, double **y){
-
-	int ip, jp, kp, l, t; 
-	double c_yx = 0;
-	double c_xx = 0;
-
-	// compute: y_aux, x_aux, c_yx, c_xx
-	double *x_aux = Calloc( N*T , double ); 
-	double *y_aux = Calloc( N*T , double ); 
-
-	for( ip=0; ip<N; ++ip ){
-		for( t=P; t<T; ++t ){
-			y_aux[ ip*T+t ] = y[t][ip];
-			for( kp=0; kp<P; ++kp ){
-				for( jp=0; jp<N; ++jp ){
-					y_aux[ ip*T+t ] -= alpha[ ALPIDX(ip,jp,kp,N,P) ] * y[t-kp-1][jp];
-					for( l=0; l<N; ++l ){
-						if( l != ip ) y_aux[ ip*T+t ] += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * y[t-kp-1][jp];
-					}
-				}
-			}
-			for( l=0 ; l<N; ++l ){
-				if( l!=ip ) y_aux[ ip*T+t ] -=  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * y[t][l];
-			}
-
-			if( ip==i ){
-				y_aux[ ip*T+t ] += +alpha[ ALPIDX(i,j,k,N,P) ] * y[t-k-1][j];
-				x_aux[ ip*T+t ]  = y[t-k-1][j];
-			}
-			else {
-				y_aux[ ip*T+t ] += -alpha[ ALPIDX(i,j,k,N,P) ] * rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
-				x_aux[ ip*T+t ]  = -rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
-			}
-	
-			c_yx += y_aux[ ip*T+t ] * x_aux[ ip*T+t ];
-			c_xx += x_aux[ ip*T+t ] * x_aux[ ip*T+t ];
-		}
-	}
-
-	Free( x_aux );
-	Free( y_aux );
-
-	// update alpha
-	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
-
-	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",i,j,k,c_yx/(T*N),c_xx/(T*N),c_yx/c_xx,alpha[ ALPIDX(i,j,k,N,P) ]);
-
-}
-
 
 // RHO update
 void rho_update(double *rho, int i, int j, double **C_eps, double *c, double lambda, double *rho_weights, int T, int N, int P){
@@ -212,7 +161,7 @@ void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights
 	double **C_eps;
   
 	// init
-	maxiter  = 100;
+	maxiter  = 1;
 	toll     = 1e-4;
 	verbose  = *v;
 	T = *_T;
@@ -246,9 +195,9 @@ void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights
 		}
 
 		// Covariance y
-		for( i=0; i<N; ++i ){
-			for( j=0; j<N; ++j ){
-				for( k=0; k<P+1; ++k ){
+		for( k=0; k<P+1; ++k ){
+			for( i=0; i<N; ++i ){
+				for( j=0; j<N; ++j ){
 					C_y[k][i][j] = 0;
 					for( t=P; t<T; ++t ) C_y[k][i][j] += y[t][i]*y[t-k][j];
 				}
@@ -279,7 +228,7 @@ void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights
 	}
 
 	// check! 
-	nets_sanity_check(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,granger_network,parcorr_network);
+	nets_sanity_check(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,granger_network,parcorr_network,C_y,C_eps);
 
 	// main loop
 	delta = 0.0;
@@ -559,11 +508,11 @@ void nets_long(double *alpha, double *rho, double *alpha_weights, double *rho_we
 	
 }
 
-void nets_sanity_check(double **y, double *alpha, double *rho, double lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN){
+void nets_sanity_check(double **y, double *alpha, double *rho, double lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN, double ***C_y, double C_eps){
 
 	int i,j,k;
 		
-	Rprintf( "NETS: T %d N %d P %d GN %d CN %d\n",T,N,P,GN,CN);
+	Rprintf( "NETS: T %d N %d P %d GN %d CN %d\n\n",T,N,P,GN,CN);
 
 	// Check A
 	if( GN ){
@@ -579,6 +528,7 @@ void nets_sanity_check(double **y, double *alpha, double *rho, double lambda, do
 		for( i=0;i<N*N*P; ++i) Rprintf( "%f, " , alpha[ i ]  );
 		Rprintf( "\n" );
 	}
+	Rprintf( "\n" );
 
 	// Check R
 	if( CN ){
@@ -595,10 +545,23 @@ void nets_sanity_check(double **y, double *alpha, double *rho, double lambda, do
 				else Rprintf( "% 4.4f, ", 1.0 );
 			}
 			Rprintf( "\n" );	
-		}	
+		}
+		Rprintf( "\n" );	
 	}
-		
-	Rprintf( "\n" );
+
+	// check C_y
+	if( GN ){
+		for(k=0; k<P+1; ++k){
+			Rprintf( "C(%d)\n" , k );
+			for(i=0;i<N;++i){
+				for(j=0;j<N;++j){
+					Rprintf( "% 4.4f, " , C_y[k][i][j]  );
+				}
+				Rprintf( "\n" );	
+			}	
+		}
+		Rprintf( "\n" );
+	}
 }
 
 void nets_log(double **y, double *alpha, double *rho, double lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int iter, double delta){
