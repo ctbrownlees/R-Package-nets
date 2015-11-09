@@ -27,79 +27,55 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 	int ip, jp, kp, l; 
 	double c_yx = 0;
 	double c_xx = 0;
+	double c_tmp;
 
-	/*
-	c_yx = C_y[1+k][i][j]; 
-	for( kp=0; kp<P; ++kp ){
-		for( jp=0; jp<N; ++jp ){
-			if( jp!=j && kp!=k ){
-				if( kp-k >= 0) c_yx += - alpha[ ALPIDX(i,jp,kp,N,P) ] * C_y[kp-k][jp][j];
-				else           c_yx += - alpha[ ALPIDX(i,jp,kp,N,P) ] * C_y[k-kp][j][jp];
-			}
-		}
-	}
-	for( kp=0; kp<P; ++kp ){
-		for( jp=0; jp<N; ++jp ){
-			for( l=0; l<N; ++l ){
-				if( kp-k >= 0) c_yx += alpha[ ALPIDX(l,jp,kp,N,P) ] * rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * C_y[kp-k][jp][j];
-				else c_yx += alpha[ ALPIDX(l,jp,kp,N,P) ] * rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * C_y[k-kp][j][jp];
-			}
-		}
-	}
-	for( l=0; l<N; ++l ){
-		if( l != i ){
-			c_yx += -rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * C_y[1+k][l][j];
-		}
-	}
+	c_yx = 0.0;
+	c_xx = 0.0;
 	for( ip=0; ip<N; ++ip ){
-		if( ip != i ){
-			c_yx += - rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[k][ip][j];
-		}
-	}
-	for( ip=0; ip<N; ++ip ){
+
+		if( ip == i ) c_yx += C_y[1+k][i][j];
+		else          c_yx += - rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[1+k][i][j];
+
 		for( kp=0; kp<P; ++kp ){
 			for( jp=0; jp<N; ++jp ){
-				if( kp-k >= 0) c_yx += alpha[ ALPIDX(ip,jp,kp,N,P) ] * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[kp-k][jp][j];
-				else c_yx += alpha[ ALPIDX(ip,jp,kp,N,P) ] * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[k-kp][j][jp];
-			}
-		}	
-	}
-	for( ip=0; ip<N; ++ip ){
-		for( kp=0; kp<P; ++kp ){
-			for( jp=0; jp<N; ++jp ){
-				for( l=0; l<N ; ++l ){
-					if( l != i ){
-						if( kp-k >= 0) c_yx += - rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[kp-k][jp][j];
-						else c_yx += - rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[k-kp][j][jp];
+
+				c_tmp = kp-k>0? C_y[kp-k][jp][j] : C_y[k-kp][jp][j];
+
+				if( ip == i ){
+					c_yx += -alpha[ ALPIDX(ip,jp,kp,N,P) ] * c_tmp;
+				}
+				else {
+					c_yx += alpha[ ALPIDX(ip,jp,kp,N,P) ] * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i])  * c_tmp;
+				}
+
+				for( l=0; l<N; ++l ){
+					if( l!=ip ){
+						if( ip == i ) c_yx +=  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * c_tmp;
+						else          c_yx += - rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * c_tmp;
 					}
 				}
-			}
-		}	
-	}
-	for( ip=0; ip<N; ++ip ){
-		for( l=0; l<N ; ++l ){
-			if( l != i ){
-				c_yx += - rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[1+k][l][j];
+
 			}
 		}
-	}
-	c_xx = 0;
-	for( ip=0; ip<N ; ++ip ){
-		if( ip != i ){
-			c_xx += rho[ RHOIDX(ip,ip) ] * rho[ RHOIDX(ip,ip) ] * c[i]/c[ip] * C_y[0][j][j];
+		for( l=0 ; l<N; ++l ){
+			if( l!=ip ){
+				if( ip==i ) c_yx += -rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * C_y[k][l][j];
+				else        c_yx += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[k][l][j];
+			}
 		}
-		else{
+
+		if( ip==i ){
+			c_yx += +alpha[ ALPIDX(i,j,k,N,P) ] * C_y[1+k][i][j];
 			c_xx += C_y[0][j][j];
+		}
+		else {
+			c_xx += rho[ RHOIDX(ip,i) ] * rho[ RHOIDX(ip,i) ] * (c[ip]/c[i]) * C_y[0][j][j];
 		}
 	}
 	
-	c_yx = -c_yx;
-
 	// update alpha
-	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
-
-	Rprintf("%d %d %d -> %f %f : %f\n",i,j,k,c_yx,c_xx, alpha[ ALPIDX(i,j,k,N,P) ]);
-	*/
+	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",i,j,k,c_yx/(T*N),c_xx/(T*N),c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
+	//alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
 	// compute: y_aux, x_aux, c_yx, c_xx
 	double *x_aux = Calloc( N*T , double ); 
@@ -111,28 +87,28 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 		for( t=P; t<T; ++t ){
 			y_aux[ ip*T+t ] = y[t][ip];
 			for( kp=0; kp<P; ++kp ){
-				for( jp; jp<N; ++jp ){
+				for( jp=0; jp<N; ++jp ){
 					y_aux[ ip*T+t ] -= alpha[ ALPIDX(ip,jp,kp,N,P) ] * y[t-kp-1][jp];
-					for( l=0 ; l<N; ++l ){
-						if( l!=ip ) y_aux[ ip*T+t ] +=  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * y[t-kp-1][jp];
+					for( l=0; l<N; ++l ){
+						if( l != ip ) y_aux[ ip*T+t ] += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * y[t-kp-1][jp];
 					}
 				}
 			}
 			for( l=0 ; l<N; ++l ){
-				if( l!=ip ) y_aux[ ip*T+t ] +=  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * y[t][l];
+				if( l!=ip ) y_aux[ ip*T+t ] -=  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * y[t][l];
 			}
 
 			if( ip==i ){
-				y_aux[ ip*T+t ] += alpha[ ALPIDX(ip,jp,kp,N,P) ] * y[t-k-1][j];
-				x_aux[ ip*T+t ] = y[t-k-1][j];
+				y_aux[ ip*T+t ] += +alpha[ ALPIDX(i,j,k,N,P) ] * y[t-k-1][j];
+				x_aux[ ip*T+t ]  = y[t-k-1][j];
 			}
 			else {
-				y_aux[ ip*T+t ] -=  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * y[t-k-1][j];
-				x_aux[ l*T+t ]   = -rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * y[t-k-1][j];
+				y_aux[ ip*T+t ] += -alpha[ ALPIDX(i,j,k,N,P) ] * rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
+				x_aux[ ip*T+t ]  = -rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
 			}
 	
-			c_yx += y_aux[ k*T+t ] * x_aux[ k*T+t ];
-			c_xx += x_aux[ l*T+t ] * x_aux[ k*T+t ];
+			c_yx += y_aux[ ip*T+t ] * x_aux[ ip*T+t ];
+			c_xx += x_aux[ ip*T+t ] * x_aux[ ip*T+t ];
 		}
 	}
 
@@ -142,9 +118,60 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 	// update alpha
 	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
-	Rprintf("%d %d %d -> %f %f : %f\n",i,j,k,c_yx,c_xx, alpha[ ALPIDX(i,j,k,N,P) ]);
+	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",i,j,k,c_yx/(T*N),c_xx/(T*N),c_yx/c_xx,alpha[ ALPIDX(i,j,k,N,P) ]);
 
 }
+
+// ALPHA update
+void alpha_update_long(double *alpha, int i, int j, int k, double ***C_y, double *rho, double *c, double lambda, double *alpha_weights, int T, int N, int P, double **y){
+
+	int ip, jp, kp, l, t; 
+	double c_yx = 0;
+	double c_xx = 0;
+
+	// compute: y_aux, x_aux, c_yx, c_xx
+	double *x_aux = Calloc( N*T , double ); 
+	double *y_aux = Calloc( N*T , double ); 
+
+	for( ip=0; ip<N; ++ip ){
+		for( t=P; t<T; ++t ){
+			y_aux[ ip*T+t ] = y[t][ip];
+			for( kp=0; kp<P; ++kp ){
+				for( jp=0; jp<N; ++jp ){
+					y_aux[ ip*T+t ] -= alpha[ ALPIDX(ip,jp,kp,N,P) ] * y[t-kp-1][jp];
+					for( l=0; l<N; ++l ){
+						if( l != ip ) y_aux[ ip*T+t ] += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * y[t-kp-1][jp];
+					}
+				}
+			}
+			for( l=0 ; l<N; ++l ){
+				if( l!=ip ) y_aux[ ip*T+t ] -=  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * y[t][l];
+			}
+
+			if( ip==i ){
+				y_aux[ ip*T+t ] += +alpha[ ALPIDX(i,j,k,N,P) ] * y[t-k-1][j];
+				x_aux[ ip*T+t ]  = y[t-k-1][j];
+			}
+			else {
+				y_aux[ ip*T+t ] += -alpha[ ALPIDX(i,j,k,N,P) ] * rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
+				x_aux[ ip*T+t ]  = -rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
+			}
+	
+			c_yx += y_aux[ ip*T+t ] * x_aux[ ip*T+t ];
+			c_xx += x_aux[ ip*T+t ] * x_aux[ ip*T+t ];
+		}
+	}
+
+	Free( x_aux );
+	Free( y_aux );
+
+	// update alpha
+	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
+
+	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",i,j,k,c_yx/(T*N),c_xx/(T*N),c_yx/c_xx,alpha[ ALPIDX(i,j,k,N,P) ]);
+
+}
+
 
 // RHO update
 void rho_update(double *rho, int i, int j, double **C_eps, double *c, double lambda, double *rho_weights, int T, int N, int P){
@@ -165,6 +192,7 @@ void rho_update(double *rho, int i, int j, double **C_eps, double *c, double lam
 	// update rho
 	rho[ RHOIDX(i,j) ] = soft_thresholding(c_yx,c_xx,lambda*rho_weights[RHOIDX(i,j)] );
 }
+
 
 //
 void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v)
@@ -265,7 +293,7 @@ void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights
 
 		// ALPHA Step
 		if( granger_network ){
-		//	for( i=0; i<N; ++i) for( j=0; j<N; ++j) for( k=0; k<P; ++k ) alpha_update(alpha,i,j,k,C_y,rho,c,lambda,alpha_weights,T,N,P,y);
+			for( i=0; i<N; ++i) for( j=0; j<N; ++j) for( k=0; k<P; ++k ) alpha_update(alpha,i,j,k,C_y,rho,c,lambda,alpha_weights,T,N,P,y);
 		}
 		
 		if( granger_network && parcorr_network ){ 

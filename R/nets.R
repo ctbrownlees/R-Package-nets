@@ -45,6 +45,7 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	    alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
 	  }
 	  alpha.weights <- 1/abs(alpha)
+    alpha.weights <- abs(alpha)*0+1
 	} else {
 	  eps           <- y
 	  alpha         <- c()
