@@ -1,7 +1,7 @@
 
 .packageName <- "nets"
 
-nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE ){
+nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE , algorithm='std' ){
 
 	# input check
 	if( !is.data.frame(y) & !is.matrix(y) ){
@@ -45,7 +45,6 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	    alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
 	  }
 	  alpha.weights <- 1/abs(alpha)
-    alpha         <- abs(alpha)*0
     alpha.weights <- abs(alpha)*0+1
 	} else {
 	  eps           <- y
@@ -69,7 +68,7 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	}
   
   # call nets
-	run <- .C("nets",
+	run <- .C( sprintf("nets_%s",algorithm),
 	          alpha        =as.double(alpha),
 	          rho          =as.double(rho), 
 	          alpha.weights=as.double(alpha.weights),

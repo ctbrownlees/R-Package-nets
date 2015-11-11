@@ -34,7 +34,7 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 	for( ip=0; ip<N; ++ip ){
 
 		if( ip == i ) c_yx += C_y[1+k][i][j];
-		else          c_yx += -rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[1+k][i][j];
+		else          c_yx += -rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[1+k][ip][j];
 
 		for( kp=0; kp<P; ++kp ){
 			for( jp=0; jp<N; ++jp ){
@@ -42,7 +42,7 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 				c_tmp = ( (k-kp)>=0 ) ? ( C_y[k-kp][jp][j] ):( C_y[kp-k][j][jp] );
 
 				if( ip == i ){
-					c_yx += -alpha[ ALPIDX(ip,jp,kp,N,P) ] * c_tmp;
+					c_yx += -alpha[ ALPIDX(ip,jp,kp,N,P) ] * c_tmp * ( (double) ( ip!=i || jp!=j || kp!=k ) );
 				}
 				else {
 					c_yx += alpha[ ALPIDX(ip,jp,kp,N,P) ] * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i])  * c_tmp;
@@ -50,8 +50,10 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 
 				for( l=0; l<N; ++l ){
 					if( l!=ip ){
-						if( ip == i ) c_yx +=  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * c_tmp;
-						else          c_yx += - rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * c_tmp;
+						if( ip == i ) c_yx +=  
+						rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * c_tmp * ( (double) ( l!=i || jp!=j || kp!=k ) );
+						else          c_yx += 
+						-rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * c_tmp * ( (double) ( l!=i || jp!=j || kp!=k ) );
 					}
 				}
 
@@ -59,13 +61,13 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 		}
 		for( l=0 ; l<N; ++l ){
 			if( l!=ip ){
-				if( ip==i ) c_yx += -rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * C_y[k][l][j];
-				else        c_yx += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[k][l][j];
+				if( ip==i ) c_yx += -rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * C_y[1+k][l][j];
+				else        c_yx +=  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) * C_y[1+k][l][j];
 			}
 		}
 
 		if( ip==i ){
-			c_yx += +alpha[ ALPIDX(i,j,k,N,P) ] * C_y[0][j][j];
+			//c_yx += +alpha[ ALPIDX(i,j,k,N,P) ] * C_y[0][j][j];
 			c_xx += C_y[0][j][j];
 		}
 		else {
@@ -74,10 +76,11 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 	}
 	
 	// update alpha
-	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
+	//Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
 	//alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
 	// compute: y_aux, x_aux, c_yx, c_xx
+	/*
 	double *x_aux = Calloc( N*T , double ); 
 	double *y_aux = Calloc( N*T , double ); 
 	int t;
@@ -114,11 +117,12 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 
 	Free( x_aux );
 	Free( y_aux );
-	
+	*/
+
 	// update alpha
 	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
-	Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,alpha[ ALPIDX(i,j,k,N,P) ]);
+	//Rprintf("%d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,alpha[ ALPIDX(i,j,k,N,P) ]);
 
 }
 
@@ -144,7 +148,7 @@ void rho_update(double *rho, int i, int j, double **C_eps, double *c, double lam
 
 
 //
-void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v)
+void nets_std(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v)
 {
 	// variables 
 	int T, N, P;
@@ -161,7 +165,7 @@ void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights
 	double **C_eps;
   
 	// init
-	maxiter  = 1;
+	maxiter  = 100;
 	toll     = 1e-4;
 	verbose  = *v;
 	T = *_T;
@@ -228,7 +232,7 @@ void nets(double *alpha, double *rho, double *alpha_weights, double *rho_weights
 	}
 
 	// check! 
-	//nets_sanity_check(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,granger_network,parcorr_network,C_y,C_eps);
+	nets_sanity_check(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,granger_network,parcorr_network,C_y,C_eps);
 
 	// main loop
 	delta = 0.0;
@@ -339,7 +343,7 @@ void nets_long(double *alpha, double *rho, double *alpha_weights, double *rho_we
 	double c_yx, c_xx;
   
 	// init
-	maxiter  = 2;
+	maxiter  = 100;
 	toll     = 1e-6;
 	verbose  = *v;
 	T = *_T;
