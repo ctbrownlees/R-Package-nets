@@ -1,12 +1,15 @@
 
 .packageName <- "nets"
 
-nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE , algorithm='activeset' , weights='adaptive' ){
+nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE , algorithm='activeset' , weights='adaptive' , maxiter=100 ){
 
 	# input check
 	if( !is.data.frame(y) & !is.matrix(y) ){
 		stop("The 'y' parameter has to be a TxN matrix or a data.frame of data")
 	}
+  if( maxiter < 1 ){
+    stop("The 'maxiter' parameter has to be positive")
+  }
 	if( p<0 ){
 		stop("The 'p' parameter has to be nonnegative")
 	}
@@ -68,7 +71,7 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	  c.hat       <- diag(C.hat)
 	  PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )
 	  
-	  rho         <- PC[ lower.tri(PC) ]
+	  rho         <- PC[ lower.tri(PC) ]    
 
     if( weights=='adaptive' ){
 	    rho.weights <- 1/abs(rho)
@@ -98,7 +101,8 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	          c.hat        =as.double(c.hat),
 	          GN           =as.integer(GN),
 	          CN           =as.integer(CN),
-	          v            =as.integer(verbose) )
+	          v            =as.integer(verbose),
+            m            =as.integer(maxiter))
   
   # package results
 	obj <- list()
