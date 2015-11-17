@@ -1,7 +1,7 @@
 
 .packageName <- "nets"
 
-nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE , algorithm='activeset' , weights='adaptive' , maxiter=100 ){
+nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , alpha.init=NULL , rho.init=NULL , verbose=FALSE , algorithm='activeset' , weights='adaptive' , maxiter=100 ){
 
 	# input check
 	if( !is.data.frame(y) & !is.matrix(y) ){
@@ -37,25 +37,31 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	}
 	
 	# pre-estimation
-	if( T < N*P ){ stop("Not implemented yet") }
+  if( is.null(alpha.init) & is.null(rho.init) & (T < N*P) ){ stop("Cannot compute initial values when T<N*P") }
     
 	if( GN == TRUE ){
-	  x.aux <- matrix( 0 , T , N*P )
-	  for( p in 1:P ){
-	    x.aux[(p+1):T, ((p-1)*N+1):(p*N) ] <- y[1:(T-p),]
-	  }
-	  
-	  reg <- lm( y ~ 0+x.aux )
-	  A     <- coef(reg)
-	  eps   <- reg$resid
-	  
-	  alpha <- c()
-	  for( p in 1:P ){
-	    alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
-	  }
-	  alpha.weights <- 1/abs(alpha)
+    
+    if( is.null(alpha.init) ){
+      x.aux <- matrix( 0 , T , N*P )
+      for( p in 1:P ){
+        x.aux[(p+1):T, ((p-1)*N+1):(p*N) ] <- y[1:(T-p),]
+      }
+      
+      reg <- lm( y ~ 0+x.aux )
+      A     <- coef(reg)
+      eps   <- reg$resid
+      
+      alpha <- c()
+      for( p in 1:P ){
+        alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
+      }
+    }
+    else{
+      alpha <- alpha.init
+    }
+
     if( weights=='adaptive' ){
-      alpha.weights <- 1/abs(alpha)
+      alpha.weights <- 1/(abs(alpha)+1e-4)
     }
     else{
       alpha.weights <- alpha*0+1
@@ -69,12 +75,17 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	if( CN == TRUE ){
 	  C.hat       <- solve( cov(eps) )
 	  c.hat       <- diag(C.hat)
-	  PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )
-	  
-	  rho         <- PC[ lower.tri(PC) ]    
+
+    if( is.null(rho.init) ){
+      PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )	  
+	    rho         <- PC[ upper.tri(PC) ]
+    }
+    else{
+      rho         <- rho.init
+    }
 
     if( weights=='adaptive' ){
-	    rho.weights <- 1/abs(rho)
+	    rho.weights <- 1/(abs(rho)+1e-4)
 	  }
 	  else{
 	    rho.weights <- rho*0+1

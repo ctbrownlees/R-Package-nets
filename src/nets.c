@@ -60,11 +60,10 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 
 	}
 
-	//Rprintf("QUICK: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
+	Rprintf("QUICK: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
 	
-	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
-	
-	/*	
+	//alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
+
 	// compute: y_aux, x_aux, c_yx, c_xx
 	double *x_aux = Calloc( N*T , double ); 
 	double *y_aux = Calloc( N*T , double ); 
@@ -104,10 +103,9 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 	Free( y_aux );
 	
 	// update alpha
-	//alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
+	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
 	Rprintf("EXACT: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
-	*/
 	
 }
 
@@ -216,7 +214,6 @@ void nets_std(double *alpha, double *rho, double *alpha_weights, double *rho_wei
 		}
 	}
 
-	// check! 
 	//nets_sanity_check(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,granger_network,parcorr_network,C_y,C_eps);
 
 	// main loop
@@ -260,6 +257,8 @@ void nets_std(double *alpha, double *rho, double *alpha_weights, double *rho_wei
 		if( parcorr_network ) for( i=0; i<N*(N-1)/2; ++i ){ delta += fabs(rho[i]-rho_old[i]);     }
 		if( delta<toll ) break;
 	}
+	
+	if( verbose ) nets_log(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,iter,delta);
   
 	// clean up	
 	for(t = 0; t < T; t++){ 
@@ -511,6 +510,7 @@ void nets_activeset(double *alpha, double *rho, double *alpha_weights, double *r
 
 	}
 
+	if( verbose ) nets_log(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,iter2,delta);
   
 	// clean up	
 	for(t = 0; t < T; t++){ 
@@ -749,11 +749,8 @@ void nets_sanity_check(double **y, double *alpha, double *rho, double lambda, do
 			}
 			Rprintf( "\n" );
 		}
-	}
-	Rprintf( "\n" );
+		Rprintf( "\n" );
 
-	// Check A
-	if( GN ){
 		Rprintf( "A\n");
 		for(k=0;k<P;++k){
 			for(i=0;i<N;++i){
@@ -771,6 +768,16 @@ void nets_sanity_check(double **y, double *alpha, double *rho, double lambda, do
 
 	// Check R
 	if( CN ){
+		Rprintf( "C indices\n");
+		for(i=0;i<N;++i){
+			for(j=0;j<N;++j){
+				if( i!=j ) Rprintf( "%d, " , RHOIDX(i,j)  );
+				else Rprintf("x, ");
+			}
+			Rprintf( "\n" );
+		}
+		Rprintf( "\n" );
+
 		Rprintf( "rho vector and rho vector weights:\n" );
 		for( i=0;i<N*(N-1)/2; ++i) Rprintf( "% 4.4f, " , rho[ i ]  );
 		Rprintf( "\n" );
