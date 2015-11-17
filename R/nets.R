@@ -1,7 +1,7 @@
 
 .packageName <- "nets"
 
-nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE , algorithm='std' ){
+nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , verbose=FALSE , algorithm='activeset' , weights='adaptive' ){
 
 	# input check
 	if( !is.data.frame(y) & !is.matrix(y) ){
@@ -16,7 +16,13 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
   if( GN==FALSE & CN==FALSE ){
     stop("At least A or G have to be true")  
   }
-
+  if( !(algorithm %in% c('std','shooting','activeset')) ){
+    stop("The algorihm has to be set to: 'std', 'shooting' or 'activeset'")  
+  }
+	if( !(weights %in% c('adaptive','none')) ){
+	  stop("The lasso weights have to be set to: 'adaptive', or 'none'")  
+	}
+	
 	# define variables
 	T <- nrow(y)
 	N <- ncol(y)
@@ -45,7 +51,12 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	    alpha <- c( alpha , ( A[((p-1)*N+1):(p*N),] ) [1:(N*N)] )
 	  }
 	  alpha.weights <- 1/abs(alpha)
-    alpha.weights <- abs(alpha)*0+1
+    if( weights=='adaptive' ){
+      alpha.weights <- 1/abs(alpha)
+    }
+    else{
+      alpha.weights <- alpha*0+1
+    }
 	} else {
 	  eps           <- y
 	  alpha         <- c()
@@ -58,8 +69,14 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	  PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )
 	  
 	  rho         <- PC[ lower.tri(PC) ]
-	  rho.weights <- 1/abs(rho)
-	  rho.weights <- rep(1,length(rho))
+
+    if( weights=='adaptive' ){
+	    rho.weights <- 1/abs(rho)
+	  }
+	  else{
+	    rho.weights <- rho*0+1
+	  }
+
 	} else {
 	  c.hat       <- rep(1,N)
 	  
@@ -117,6 +134,7 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 	  dimnames(C.hat)[[2]] <- labels
 	  obj$C.hat     <- C.hat 
 	  obj$rho.hat   <- run$rho
+    obj$sigma.hat <- run$c.hat
   }
   
   # networks
