@@ -53,13 +53,13 @@ void alpha_update(double *alpha, int i, int j, int k, double **C_y, double *rho,
 		}
 
 		if( ip==i ) c_yx += alpha[ ALPIDX(i,j,k,N,P) ] * kappa * C_y[(1+k)*N+j][(1+k)*N+j];
-		//else        c_yx += alpha[ ALPIDX(i,j,k,N,P) ] * kappa * C_y[(1+k)*N+j][(1+k)*N+j]; // ???
+		else        c_yx += -alpha[ ALPIDX(i,j,k,N,P) ] * rho[ RHOIDX(ip,i) ] * sqrt(c[i]/c[ip]) * kappa * C_y[(1+k)*N+j][(1+k)*N+j]; // ??? BUUUG
 		c_xx += kappa * kappa * C_y[(1+k)*N+j][(1+k)*N+j];
 	}
 
 	//alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
-	Rprintf("QUICK: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
+	//Rprintf("QUICK: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
 
 	// compute: y_aux, x_aux, c_yx, c_xx
 	double *x_aux = Calloc( N*T , double ); 
@@ -87,7 +87,7 @@ void alpha_update(double *alpha, int i, int j, int k, double **C_y, double *rho,
 				x_aux[ ip*T+t ]  = y[t-k-1][j];
 			}
 			else {
-				//y_aux[ ip*T+t ] += -alpha[ ALPIDX(i,j,k,N,P) ] * rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j]; // ???
+				y_aux[ ip*T+t ] += -alpha[ ALPIDX(i,j,k,N,P) ] * rho[ RHOIDX(ip,i) ] * sqrt(c[i]/c[ip]) * y[t-k-1][j]; // BUUUUG
 				x_aux[ ip*T+t ]  = -rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
 			}
 
@@ -102,7 +102,7 @@ void alpha_update(double *alpha, int i, int j, int k, double **C_y, double *rho,
 	// update alpha
 	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
-	Rprintf("EXACT: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
+	//Rprintf("EXACT: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
 }
 
 // RHO update
