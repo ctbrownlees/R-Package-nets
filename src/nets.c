@@ -23,12 +23,11 @@ double soft_thresholding(double c_yx,double c_xx,double lambda){
 }
 
 // ALPHA update
-void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho, double *c, double lambda, double *alpha_weights, int T, int N, int P, double **y){
+void alpha_update(double *alpha, int i, int j, int k, double **C_y, double *rho, double *c, double lambda, double *alpha_weights, int T, int N, int P, double **y){
 
 	int ip, jp, kp, l; 
 	double c_yx = 0;
 	double c_xx = 0;
-	double c_tmp;
 	double kappa;
 
 	c_yx = 0.0;
@@ -37,32 +36,31 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 
 		kappa = (ip==i)? 1.0 : ( -rho[ RHOIDX(i,ip) ] * sqrt(c[ip]/c[i]) );
 
-		c_yx += kappa * C_y[1+k][ip][j];
+		c_yx += kappa * C_y[ip][(1+k)*N+j];
 
 		for( kp=0; kp<P; ++kp ){
 			for( jp=0; jp<N; ++jp ){
 
-				c_tmp = ( (k-kp)>=0 ) ? ( C_y[k-kp][jp][j] ):( C_y[kp-k][j][jp] );
-
-				c_yx += -alpha[ ALPIDX(ip,jp,kp,N,P) ] * kappa * c_tmp * ( (double) ( ip!=i || jp!=j || kp!=k ) );
+				c_yx += -alpha[ ALPIDX(ip,jp,kp,N,P) ] * kappa * C_y[(1+kp)*N+jp][(1+k)*N+j];
 
 				for( l=0; l<N; ++l ){
-					c_yx += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * kappa * c_tmp * ( (double) ( l!=i || jp!=j || kp!=k ) );
+					c_yx += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * kappa * C_y[(1+kp)*N+jp][(1+k)*N+j];
 				}
 
 			}
 		}
 		for( l=0 ; l<N; ++l ){
-			c_yx += -rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * kappa * C_y[1+k][l][j];
+			c_yx += -rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * kappa * C_y[l][(1+k)*N+j];
 		}
 
-		c_xx += kappa*kappa * C_y[0][j][j];
+		c_yx += alpha[ ALPIDX(i,j,k,N,P) ] * kappa * C_y[(1+k)*N+j][(1+k)*N+j];
+		c_xx += kappa * kappa * C_y[(1+k)*N+j][(1+k)*N+j];
 
 	}
 
-	Rprintf("QUICK: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
-	
 	//alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
+
+	Rprintf("QUICK: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
 
 	// compute: y_aux, x_aux, c_yx, c_xx
 	double *x_aux = Calloc( N*T , double ); 
@@ -106,7 +104,6 @@ void alpha_update(double *alpha, int i, int j, int k, double ***C_y, double *rho
 	alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
 
 	Rprintf("EXACT: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+k,c_yx,c_xx,c_yx/c_xx,soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]));
-	
 }
 
 // RHO update
@@ -142,9 +139,9 @@ void nets_std(double *alpha, double *rho, double *alpha_weights, double *rho_wei
 	double lambda;
 	int iter, maxiter;
 	int verbose;
-	int i, j, k;
+	int i, j, k, kp;
 	int t;
-	double ***C_y;
+	double **C_y;
 	double **C_eps;
   
 	// init
@@ -175,18 +172,18 @@ void nets_std(double *alpha, double *rho, double *alpha_weights, double *rho_wei
 	if( granger_network ){
 		alpha_old = Calloc(N*N*P,double);
 
-		C_y = Calloc(N,double**);
-		for( k=0; k<P+1; ++k){
-			C_y[k] = Calloc(N,double*);
-			for( i=0; i<N; ++i) C_y[k][i] = Calloc(N,double); 
+		C_y = Calloc(N*(P+1),double*);
+		for( k=0; k<N*(P+1); ++k){
+			C_y[k] = Calloc(N*(P+1),double);
 		}
 
-		// Covariance y
 		for( k=0; k<P+1; ++k ){
-			for( i=0; i<N; ++i ){
-				for( j=0; j<N; ++j ){
-					C_y[k][i][j] = 0;
-					for( t=P; t<T; ++t ) C_y[k][i][j] += y[t][i]*y[t-k][j];
+			for( kp=0; kp<P+1; ++kp ){
+				for( i=0; i<N; ++i ){
+					for( j=0; j<N; ++j ){
+						C_y[(k*N)+i][(kp*N)+j] = 0.0;
+						for( t=P; t<T; ++t ) C_y[(k*N)+i][(kp*N)+j] += y[t-k][i]*y[t-kp][j];
+					}
 				}
 			}
 		}
@@ -271,10 +268,7 @@ void nets_std(double *alpha, double *rho, double *alpha_weights, double *rho_wei
 	if( granger_network ){
 		Free(alpha_old);
 
-		for( k=0; k<P+1; ++k) {
-			for( i=0; i<N; ++i) { 
-				Free(C_y[k][i]);
-			}
+		for( k=0; k<N*(P+1); ++k ){
 			Free(C_y[k]);
 		}
 		Free(C_y);
@@ -303,9 +297,9 @@ void nets_activeset(double *alpha, double *rho, double *alpha_weights, double *r
 	double lambda;
 	int iter1, iter2, maxiter;
 	int verbose;
-	int idx, i, j, k;
+	int idx, i, j, k, kp;
 	int t;
-	double ***C_y;
+	double **C_y;
 	double **C_eps;
   
 	// init
@@ -342,18 +336,18 @@ void nets_activeset(double *alpha, double *rho, double *alpha_weights, double *r
 		}
 
 
-		C_y = Calloc(N,double**);
-		for( k=0; k<P+1; ++k){
-			C_y[k] = Calloc(N,double*);
-			for( i=0; i<N; ++i) C_y[k][i] = Calloc(N,double); 
+		C_y = Calloc(N*(P+1),double*);
+		for( k=0; k<N*(P+1); ++k){
+			C_y[k] = Calloc(N*(P+1),double);
 		}
 
-		// Covariance y
 		for( k=0; k<P+1; ++k ){
-			for( i=0; i<N; ++i ){
-				for( j=0; j<N; ++j ){
-					C_y[k][i][j] = 0;
-					for( t=P; t<T; ++t ) C_y[k][i][j] += y[t][i]*y[t-k][j];
+			for( kp=0; kp<P+1; ++kp ){
+				for( i=0; i<N; ++i ){
+					for( j=0; j<N; ++j ){
+						C_y[(k*N)+i][(kp*N)+j] = 0.0;
+						for( t=P; t<T; ++t ) C_y[(k*N)+i][(kp*N)+j] += y[t-k][i]*y[t-kp][j];
+					}
 				}
 			}
 		}
@@ -528,10 +522,7 @@ void nets_activeset(double *alpha, double *rho, double *alpha_weights, double *r
 		}
 		Free(alpha_set);
 
-		for( k=0; k<P+1; ++k) {
-			for( i=0; i<N; ++i) { 
-				Free(C_y[k][i]);
-			}
+		for( k=0; k<N*(P+1); ++k ){
 			Free(C_y[k]);
 		}
 		Free(C_y);
