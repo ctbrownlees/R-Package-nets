@@ -40,22 +40,21 @@ void alpha_update(double *alpha, int i, int j, int k, double **C_y, double *rho,
 
 		for( kp=0; kp<P; ++kp ){
 			for( jp=0; jp<N; ++jp ){
-
 				c_yx += -alpha[ ALPIDX(ip,jp,kp,N,P) ] * kappa * C_y[(1+kp)*N+jp][(1+k)*N+j];
-
 				for( l=0; l<N; ++l ){
-					c_yx += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * kappa * C_y[(1+kp)*N+jp][(1+k)*N+j];
+					c_yx += ( l != ip ) *  rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * kappa * C_y[(1+kp)*N+jp][(1+k)*N+j];
 				}
 
 			}
 		}
+
 		for( l=0 ; l<N; ++l ){
-			c_yx += -rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * kappa * C_y[l][(1+k)*N+j];
+			c_yx += ( l != ip) * -rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * kappa * C_y[l][(1+k)*N+j];
 		}
 
-		c_yx += alpha[ ALPIDX(i,j,k,N,P) ] * kappa * C_y[(1+k)*N+j][(1+k)*N+j];
+		if( ip==i ) c_yx += alpha[ ALPIDX(i,j,k,N,P) ] * kappa * C_y[(1+k)*N+j][(1+k)*N+j];
+		//else        c_yx += alpha[ ALPIDX(i,j,k,N,P) ] * kappa * C_y[(1+k)*N+j][(1+k)*N+j];
 		c_xx += kappa * kappa * C_y[(1+k)*N+j][(1+k)*N+j];
-
 	}
 
 	//alpha[ ALPIDX(i,j,k,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,k,N,P)]);
@@ -88,7 +87,7 @@ void alpha_update(double *alpha, int i, int j, int k, double **C_y, double *rho,
 				x_aux[ ip*T+t ]  = y[t-k-1][j];
 			}
 			else {
-				y_aux[ ip*T+t ] += -alpha[ ALPIDX(i,j,k,N,P) ] * rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
+				//y_aux[ ip*T+t ] += -alpha[ ALPIDX(i,j,k,N,P) ] * rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
 				x_aux[ ip*T+t ]  = -rho[ RHOIDX(ip,i) ] * sqrt(c[ip]/c[i]) * y[t-k-1][j];
 			}
 
