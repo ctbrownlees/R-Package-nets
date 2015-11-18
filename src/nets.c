@@ -74,7 +74,7 @@ void alpha_update(double *alpha, int i, int j, int k, double **C_y, double *rho,
 				for( jp=0; jp<N; ++jp ){
 					y_aux[ ip*T+t ] -= alpha[ ALPIDX(ip,jp,kp,N,P) ] * y[t-kp-1][jp];
 					for( l=0; l<N; ++l ){
-						if( l != ip ) y_aux[ ip*T+t ] += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * y[t-kp-1][jp];
+						if( l!=ip ) y_aux[ ip*T+t ] += rho[ RHOIDX(ip,l) ] * sqrt(c[l]/c[ip]) * alpha[ ALPIDX(l,jp,kp,N,P) ] * y[t-kp-1][jp];
 					}
 				}
 			}
