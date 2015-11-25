@@ -1,7 +1,6 @@
 \name{nets}
 \alias{nets}
 \alias{print.nets}
-\alias{plot.nets}
 \title{Network Estimation for Time Series}
 \description{`nets` is used to fit sparse VARs using the NETS algorithm.}
 \usage{ nets( y , p=1 , GN=TRUE , CN=TRUE , lambda , verbose=FALSE ) }
