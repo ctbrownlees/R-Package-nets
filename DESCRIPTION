@@ -1,7 +1,7 @@
 Package: nets
 Type: Package
 Title: Network Estimation for Time Series
-Version: 0.3
+Version: 0.8
 Date: 2015-05-28
 Author: Christian Brownlees
 Maintainer: Christian Brownlees <christian.brownlees@upf.edu>

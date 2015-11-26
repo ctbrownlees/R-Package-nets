@@ -1,4 +1,3 @@
-parcor_network         Partial correlation network example
-granger_network        Granger network example
-lrparcor_network       Long run partial correlation network example
-large_granger_network  Large dimensional Granger network example
+nets                            NETS demo
+partial_correlation_network	Partial correlation network demo
+granger_network                 Granger network demo

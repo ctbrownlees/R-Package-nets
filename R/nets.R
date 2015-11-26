@@ -1,7 +1,7 @@
 
 .packageName <- "nets"
 
-nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , alpha.init=NULL , rho.init=NULL , verbose=FALSE , algorithm='activeshooting' , weights='adaptive' , maxiter=100 ){
+nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , alpha.init=NULL , rho.init=NULL , algorithm='activeshooting' , weights='adaptive' , maxiter=100 , verbose=FALSE ){
   
   # input check
   if( !is.data.frame(y) & !is.matrix(y) ){
@@ -163,6 +163,6 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 }
 
 print.nets <- function( x , ... ) {
-   	cat( ' Time Series Dimension: T=',x$T,' N=',x$N,'\n',sep='')
+   	cat( ' Time Series Panel Dimension: T=',x$T,' N=',x$N,'\n',sep='')
    	cat( ' VAR Lags P=',x$P,'\n',sep='')
 }

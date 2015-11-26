@@ -284,7 +284,7 @@ void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, doub
 		}
 	}
 
-#ifdef DEBUG
+#ifdef	DEBUG
 	nets_sanity_check(y,alpha,rho,lambda,alpha_weights,rho_weights,T,N,P,granger_network,parcorr_network);
 #endif
 
@@ -558,7 +558,7 @@ void nets_log(double *alpha, double *rho, double *y_aux, double lambda, double *
 	Rprintf(" RSS: %4.4f"    , rss/(T*N) );
 	Rprintf(" Pen: %4.4f"    , pen/(T*N) );
 	Rprintf(" Obj: %4.4f"    , (rss+pen)/(T*N) );
-	Rprintf(" Spars: %4.4f"  , nnz / (GN*N*N*P + CN*N*(N-1)/2) );
+	Rprintf(" Spars: %4.4f"  , 1.0 - nnz / (GN*N*N*P + CN*N*(N-1)/2) );
 
 	if( iter!= 1 ) Rprintf(" Delta: %4.4f", delta );
 	Rprintf("\n");

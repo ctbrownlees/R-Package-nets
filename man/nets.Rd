@@ -3,13 +3,17 @@
 \alias{print.nets}
 \title{Network Estimation for Time Series}
 \description{`nets` is used to fit sparse VARs using the NETS algorithm.}
-\usage{ nets( y , p=1 , GN=TRUE , CN=TRUE , lambda , verbose=FALSE ) }
+\usage{ nets( y , p=1 , GN=TRUE , CN=TRUE , lambda , alpha.init=NULL , rho.init=NULL , algorithm='activeshooting' , weights='adaptive' , maxiter=100 , verbose=FALSE ) }
 \arguments{
 \item{y}{data, an T x N matrix, each column being a time series.}
 \item{p}{VAR order (default 1)}
 \item{GN}{Estimate the Autoregressive VAR matrices (default true)}
 \item{CN}{Estimate the Concentration matrix of the VAR innovations (default true)}
 \item{lambda}{shrinkage parameter}
+\item{alpha.init}{initial value of the alpha parameter}
+\item{rho.init}{initial value of the rho parameter}
+\item{weights}{lasso weights: 'none' or 'adaptive' (default 'adaptive')}
+\item{maxiter}{maximum number of iterations}
 \item{verbose}{extra output messages} }
 \details{The nets procedure estimates sparse VARs. The routine can be used to estimate long run partial correlation networks, partial correlation networks and Granger networks.}
 \value{
