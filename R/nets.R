@@ -97,7 +97,9 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
              GN           =as.integer(GN),
              CN           =as.integer(CN),
              v            =as.integer(verbose),
-             m            =as.integer(maxiter))
+             m            =as.integer(maxiter),
+	     rss          =as.double(0),
+	     npar         =as.double(0))
   
   # package results
   obj <- list()
@@ -105,6 +107,8 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
   obj$T         <- T
   obj$N         <- N
   obj$P         <- P
+  obj$rss       <- run$rss/(N*T)
+  obj$npar      <- run$npar
   obj$lambda    <- lambda
   
   if( GN == TRUE ){
@@ -165,4 +169,5 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 print.nets <- function( x , ... ) {
    	cat( ' Time Series Panel Dimension: T=',x$T,' N=',x$N,'\n',sep='')
    	cat( ' VAR Lags P=',x$P,'\n',sep='')
+    cat( ' RSS',x$rss,'Num Par',x$npar)
 }

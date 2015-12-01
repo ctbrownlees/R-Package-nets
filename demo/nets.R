@@ -7,14 +7,15 @@ set.seed(12345)
 N <- 5
 P <- 2
 L <- 40
-T <- 200
+T <- 1000
 
 A <- array(0,dim=c(N,N,P))
 C <- matrix(0,N,N)
 
 A[,,1]   <- 0.7 * diag(N) 
 A[,,2]   <- 0.2 * diag(N) 
-A[1,1,1] <- 0
+A[1,2,1] <- 0.2
+A[4,3,2] <- 0.2
 
 C      <- diag(N)
 C[1,1] <- 2
@@ -22,6 +23,9 @@ C[4,2] <- -0.2
 C[2,4] <- -0.2
 C[1,3] <- -0.1
 C[1,3] <- -0.1
+
+g.adj <- 1*( A[,,1]!=0 | A[,,2]!=0 ) - diag(N)
+c.adj <- 1*(C!=0) - diag(N)
 
 Sig    <- solve(C)
 
@@ -47,5 +51,8 @@ for( t in (P+1):T ){
 }
 
 #
-lambda  <- 0.01
-results2 <- nets(y,P,lambda=lambda*T,verbose=TRUE) 
+net <- nets(y,P,lambda=2,verbose=TRUE) 
+
+cbind( net$g.adj , g.adj )
+
+cbind( net$c.adj , c.adj )
