@@ -4,7 +4,7 @@ library(nets)
 
 set.seed(12345)
 
-N <- 5
+N <- 10
 P <- 2
 L <- 40
 T <- 1000
