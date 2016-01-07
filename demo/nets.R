@@ -51,8 +51,10 @@ for( t in (P+1):T ){
 }
 
 #
-net <- nets(y,P,lambda=2,verbose=TRUE) 
+mdl <- nets(y[1:round(0.9*T),],P,lambda=c(20,40),verbose=TRUE) 
 
-cbind( net$g.adj , g.adj )
+cbind( mdl$g.adj , g.adj )
 
-cbind( net$c.adj , c.adj )
+cbind( mdl$c.adj , c.adj )
+
+mdl.pred <- predict(mdl,y[round(0.9*T+1):T,]) 

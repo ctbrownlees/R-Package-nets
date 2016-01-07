@@ -3,7 +3,7 @@ library(nets)
 
 # parameters
 N <- 10
-T <- 100
+T <- 1000
 P <- 3
 
 A <- array(0,dim=c(N,N,P))
@@ -14,7 +14,7 @@ A[9,1,2] <- 0.2
 A[2,5,3] <- 0.2
 A[8,3,3] <- 0.2
 
-g.adj  <- A[,,1]!=0 | A[,,2]!=0 | A[,,3]!=0
+g.adj  <- 1 * ( A[,,1]!=0 | A[,,2]!=0 | A[,,3]!=0 )
 
 # simulate var
 y      <- matrix(0,T,N)
@@ -30,12 +30,21 @@ for( t in (P+1):T ){
 matplot(y,t='l')
 
 # estimate var
-lambda  <- 10
+lambda  <- 14
 results <- nets(y,P,lambda=lambda,CN=FALSE,verbose=TRUE) 
 
 g.adj.hat <- results$g.adj
 
-# plot the network
-granger.network <- graph.adjacency( g.adj.hat , mode='directed' )
+g.adj.v     <- g.adj[1:(N*N)]
+g.adj.hat.v <- g.adj.hat[1:(N*N)] 
 
+tpr <- mean( g.adj.hat.v[ g.adj.v!=0 ] != 0 )
+fdr <- mean( g.adj.hat.v[ g.adj.v==0 ] != 0 )
+
+# plot the network
+granger.network     <- graph.adjacency( g.adj , mode='directed' )
+granger.network.hat <- graph.adjacency( g.adj.hat , mode='directed' )
+
+par( mfrow=c(1,2) )
 plot( granger.network )
+plot( granger.network.hat )

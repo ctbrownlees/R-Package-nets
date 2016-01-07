@@ -1,3 +1,4 @@
 useDynLib(nets)
 export(nets)
 S3method(print,nets)
+S3method(predict,nets)

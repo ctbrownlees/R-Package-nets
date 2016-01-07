@@ -10,15 +10,18 @@
 //#define DEBUG
 
 void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v, int *m, double *rss, double *npar);
+
 void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v, int *m,double *rss, double *npar);
+
+void nets_predict(double *_y_hat, double *_y, int *_T, int *_N, int *_P, double *alpha, double *rho, double *c, int *GN, int *CN, double *rss);
 
 double soft_thresholding(double c_yx,double c_xx,double lambda);
 
 void alpha_update(double *alpha, int i, int j, int k, double *y_aux, double *x_aux, double *rho, double *c, double **y, double lambda, double *alpha_weights, int T, int N, int P);
 void rho_update(double *rho, int i, int j, double *y_aux, double *x_aux, double *alpha, double *c, double **y, double lambda, double *rho_weights, int T, int N, int P);
 
-void nets_log(double *alpha, double *rho, double *y_aux, double lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN, int iter, double delta);
-void nets_sanity_check(double **y, double *alpha, double *rho, double lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN);
+void nets_log(double *alpha, double *rho, double *y_aux, double *lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN, int iter, double delta);
+void nets_sanity_check(double **y, double *alpha, double *rho, double *lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN);
 
 // soft thresholding operator
 double soft_thresholding(double c_yx,double c_xx,double lambda){
@@ -36,7 +39,7 @@ double soft_thresholding(double c_yx,double c_xx,double lambda){
 }
 
 // (simple) SHOOTING
-void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v, int *m, double *rss, double *npar) {
+void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v, int *m, double *rss, double *npar) {
 
 	// variables 
 	int T, N, P;
@@ -46,7 +49,6 @@ void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rh
 	double *alpha_old;
 	double *rho_old;
 	double delta, toll;
-	double lambda;
 	int iter, maxiter;
 	int verbose;
 	int t, i, j, k, p;
@@ -59,7 +61,6 @@ void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rh
 	T = *_T;
 	N = *_N;
  	P = *_P;
-	lambda = *_lambda;
 	granger_network = *GN;
 	parcorr_network = *CN;
 
@@ -138,7 +139,7 @@ void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rh
 					}
 
 					// update alpha
-					alpha[ ALPIDX(i,j,p,N,P) ] = soft_thresholding(c_yx,c_xx,lambda*alpha_weights[ALPIDX(i,j,p,N,P)]);
+					alpha[ ALPIDX(i,j,p,N,P) ] = soft_thresholding(c_yx,c_xx,lambda[0]*alpha_weights[ALPIDX(i,j,p,N,P)]);
 
 #ifdef 					DEBUG
 					Rprintf("VERY EXACT: %d %d %d -> %f %f : beta_ls %f beta_lasso %f\n",1+i,1+j,1+p,c_yx,c_xx,c_yx/c_xx,alpha[ ALPIDX(i,j,p,N,P) ]);
@@ -189,10 +190,10 @@ void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rh
 				}
 
 				// update alpha
-				rho[ RHOIDX(i,j) ] = soft_thresholding(c_yx,c_xx,lambda*rho_weights[RHOIDX(i,j)] ); 
+				rho[ RHOIDX(i,j) ] = soft_thresholding(c_yx,c_xx,lambda[1]*rho_weights[RHOIDX(i,j)] ); 
 
 #ifdef 				DEBUG
-				Rprintf("%d,%d > c_yx %f c_xx %f lambda %f > rho %f\n",i,j,c_yx,c_xx,lambda,rho[RHOIDX(i,j)]);
+				Rprintf("%d,%d > c_yx %f c_xx %f lambda %f > rho %f\n",i,j,c_yx,c_xx,lambda[1],rho[RHOIDX(i,j)]);
 #endif 
 
 				// update y_aux (if new coeff is != 0) 
@@ -232,7 +233,7 @@ void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rh
 }
 
 // ACTIVE SHOOTING
-void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v, int *m, double *rss, double *npar)
+void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v, int *m, double *rss, double *npar)
 {
 	// variables 
 	int T, N, P;
@@ -242,7 +243,6 @@ void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, doub
 	double **alpha_set, **rho_set;
 	int alpha_nact, rho_nact;
 	double delta, toll;
-	double lambda;
 	int iter1, iter2, maxiter;
 	int verbose;
 	int idx, i, j, k, l;
@@ -258,7 +258,6 @@ void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, doub
 	T = *_T;
 	N = *_N;
  	P = *_P;
-	lambda = *_lambda;
 	granger_network = *GN;
 	parcorr_network = *CN;
 
@@ -380,7 +379,7 @@ void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, doub
 					j = alpha_set[idx][1];
 					k = alpha_set[idx][2];
 
-					alpha_update(alpha,i,j,k,y_aux,x_aux,rho,c,y,lambda,alpha_weights,T,N,P);
+					alpha_update(alpha,i,j,k,y_aux,x_aux,rho,c,y,lambda[0],alpha_weights,T,N,P);
 				}
 			}
 
@@ -390,7 +389,7 @@ void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, doub
 					i = rho_set[idx][0];
 					j = rho_set[idx][1];
 
-					rho_update(rho,i,j,y_aux,x_aux,alpha,c,y,lambda,rho_weights,T,N,P);
+					rho_update(rho,i,j,y_aux,x_aux,alpha,c,y,lambda[1],rho_weights,T,N,P);
 				}
 			}
 
@@ -408,12 +407,12 @@ void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, doub
 
 		// ALPHA Step
 		if( granger_network ){
-			for( i=0; i<N; ++i) for( j=0; j<N; ++j) for( k=0; k<P; ++k ) alpha_update(alpha,i,j,k,y_aux,x_aux,rho,c,y,lambda,alpha_weights,T,N,P);
+			for( i=0; i<N; ++i) for( j=0; j<N; ++j) for( k=0; k<P; ++k ) alpha_update(alpha,i,j,k,y_aux,x_aux,rho,c,y,lambda[0],alpha_weights,T,N,P);
 		}
 
 		// RHO Step
 		if( parcorr_network ){
-			for( i=0; i<N; ++i) for( j=0; j<i; ++j ) rho_update(rho,i,j,y_aux,x_aux,alpha,c,y,lambda,rho_weights,T,N,P);
+			for( i=0; i<N; ++i) for( j=0; j<i; ++j ) rho_update(rho,i,j,y_aux,x_aux,alpha,c,y,lambda[1],rho_weights,T,N,P);
 		}
 
 		delta = 0;
@@ -437,6 +436,82 @@ void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, doub
 	}
 	for( i=0; i<N*(N-1)/2; ++i ){ 
 	        *npar += fabs(rho[i])>0?1:0;
+	}
+}
+
+
+void nets_predict(double *_y_hat, double *_y, int *_T, int *_N, int *_P, double *alpha, double *rho, double *c, int *GN, int *CN, double *rss){
+
+	// variables 
+	int T, N, P;
+	int granger_network, parcorr_network;
+	double **y, **y_hat;
+	int idx, i, j, k, l;
+	int t;
+
+	T = *_T;
+	N = *_N;
+ 	P = *_P;
+	granger_network = *GN;
+	parcorr_network = *CN;
+
+	if( granger_network==0 ){ P = 0; };
+
+	// allocate memory
+	y     = (double **) R_alloc(T+P,sizeof(double*));
+	y_hat = (double **) R_alloc(T,sizeof(double*));
+	for( t=0; t<T; t++) { 
+		y[t]       = (double *) R_alloc(N,sizeof(double)); 
+		y_hat[t]   = (double *) R_alloc(N,sizeof(double)); 
+		for( i=0; i<N; i++ ) {
+			y[t][i]   = _y[ (T+P) * i + t ];
+		}
+	}
+	for( t=T; t<T+P; ++t ){
+		y[t]       = (double *) R_alloc(N,sizeof(double)); 
+		for( i=0; i<N; i++ ) {
+			y[t][i]   = _y[ (T+P) * i + t ];
+		}
+	}
+
+	*rss = 0.0;
+	for( i=0; i<N; ++i ){
+		for( t=0; t<T; ++t ){
+
+			y_hat[t][i] = 0.0;
+
+			// ALPHA
+			if( granger_network ){
+				for( j=0; j<N; ++j ){
+					for( k=0; k<P; ++k ){
+					  y_hat[t][i] += alpha[ ALPIDX(i,j,k,N,P) ] * y[t-k-1+P][j];
+					}
+				}
+			}
+
+			// RHO
+			if( parcorr_network ){
+				for( k=0; k<P; ++k ){
+					for( j=0; j<N; ++j){
+						for( l=0; l<N; ++l ){
+							if( i!=l ) y_hat[t][i] += rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * alpha[ ALPIDX(l,j,k,N,P) ] * y[t-k-1+P][j];
+						}
+					}
+				}
+				for( l=0; l<N; ++l ){
+					if( i!=l ) y_hat[t][i] -= rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * y[t+P][l];
+				}
+			}
+
+			*rss += ( y[t+P][i] - y_hat[t][i] ) * ( y[t+P][i] - y_hat[t][i] );
+		}
+	}
+
+	// copy results
+	for( t=0; t<T; t++) { 
+		for( i=0; i<N; i++ ) {
+			_y_hat[ T * i + t ] = y_hat[t][i];
+		}
 	}
 }
 
@@ -548,7 +623,7 @@ void rho_update_init(double *rho, int i, int j, double *y_aux, double *x_aux, do
 	//Rprintf("%d,%d > c_yx %f c_xx %f lambda %f > rho %f\n",i,j,c_yx,c_xx,lambda,rho[RHOIDX(i,j)]);
 }
 
-void nets_log(double *alpha, double *rho, double *y_aux, double lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN, int iter, double delta){
+void nets_log(double *alpha, double *rho, double *y_aux, double *lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN, int iter, double delta){
 
 	int i;
 	double rss = 0;
@@ -560,11 +635,11 @@ void nets_log(double *alpha, double *rho, double *y_aux, double lambda, double *
 	}
       
 	for( i=0; i<N*N*P; ++i ){     
-        	pen += lambda * alpha_weights[i] * fabs( alpha[i] );
+        	pen += lambda[0] * alpha_weights[i] * fabs( alpha[i] );
 		nnz+= fabs(alpha[i])>0?1:0;
 	}
 	for( i=0; i<N*(N-1)/2; ++i ){ 
-        	pen += lambda * rho_weights[i]   * fabs( rho[i] ); 
+        	pen += lambda[1] * rho_weights[i]   * fabs( rho[i] ); 
 	        nnz += fabs(rho[i])>0?1:0;
 	}
 
@@ -580,7 +655,7 @@ void nets_log(double *alpha, double *rho, double *y_aux, double lambda, double *
 	Rprintf("\n");
 }
 
-void nets_sanity_check(double **y, double *alpha, double *rho, double lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN){
+void nets_sanity_check(double **y, double *alpha, double *rho, double *lambda, double *alpha_weights, double *rho_weights, int T, int N, int P, int GN, int CN){
 
 	int t,i,j,k;
 	

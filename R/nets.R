@@ -35,6 +35,9 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
   } else {
     labels <- paste('V',1:N,sep='')
   }
+  if( length(lambda)==1 ){
+    lambda <- rep(lambda,2)
+  }
 
   if( !is.null(alpha.init) ) alpha <- alpha.init
   else alpha <- rep(0,N*N*P)
@@ -44,7 +47,7 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
   
   alpha.weights <- rep(1,N*N*P)
   rho.weights   <- rep(1,N*(N-1)/2)
-  c.hat         <- diag(cov(y))
+  c.hat         <- 1/diag(cov(y))
   
   # ADAPTIVE WEIGHTS COMPUTATION
   if( weights=='adaptive' ){
@@ -76,7 +79,7 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
     
     if( CN == TRUE ){
       C.hat       <- solve( cov(eps) )
-      PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )	  
+      PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )	        
       rho.pre     <- PC[ upper.tri(PC) ]
       rho.weights <- 1/(abs(rho.pre)+1e-4)      
     }    
@@ -98,18 +101,21 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
              CN           =as.integer(CN),
              v            =as.integer(verbose),
              m            =as.integer(maxiter),
-	     rss          =as.double(0),
-	     npar         =as.double(0))
+	           rss          =as.double(0),
+	           npar         =as.double(0))
   
   # package results
   obj <- list()
   class(obj)    <- 'nets'
+  obj$y         <- y
   obj$T         <- T
   obj$N         <- N
   obj$P         <- P
   obj$rss       <- run$rss/(N*T)
   obj$npar      <- run$npar
   obj$lambda    <- lambda
+  obj$GN        <- GN
+  obj$CN        <- CN
   
   if( GN == TRUE ){
     A.hat <- array(0,dim=c(N,N,P))
@@ -122,6 +128,9 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
     dimnames(A.hat)[[2]] <- labels    
     obj$A.hat     <- A.hat 
     obj$alpha.hat <- run$alpha 
+  }
+  else{
+    obj$alpha.hat <- alpha
   }
   if( CN == TRUE ){
     C.hat <- matrix(0,N,N)
@@ -137,7 +146,11 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
     dimnames(C.hat)[[2]] <- labels
     obj$C.hat     <- C.hat 
     obj$rho.hat   <- run$rho
-    obj$sigma.hat <- run$c.hat
+    obj$c.hat     <- run$c.hat
+  }
+  else{
+    obj$rho.hat   <- rho
+    obj$c.hat     <- c.hat
   }
   
   # networks
@@ -170,4 +183,38 @@ print.nets <- function( x , ... ) {
    	cat( ' Time Series Panel Dimension: T=',x$T,' N=',x$N,'\n',sep='')
    	cat( ' VAR Lags P=',x$P,'\n',sep='')
     cat( ' RSS',x$rss,'Num Par',x$npar)
+    cat( ' Lasso Penalty: ', x$lambda )
 }
+
+predict.nets <- function( x , newdata , ... ){
+
+  # input check
+  if( !is.data.frame(newdata) & !is.matrix(newdata) ){
+    stop("The 'newdata' parameter has to be a TxN matrix or a data.frame of new observation")
+  }
+  
+  #
+  T     <- nrow(newdata)
+  y.hat <- matrix(0,T,x$N)
+  y     <- rbind(x$y[(x$T-x$P):x$T,],newdata)
+  
+  # call nets
+  run <- .C( sprintf("nets_predict",algorithm),
+             y.hat        =as.double(y.hat),
+             y            =as.double(y),
+             T            =as.integer(T),
+             N            =as.integer(x$N),
+             P            =as.integer(x$P),
+             alpha        =as.double(x$alpha.hat),
+             rho          =as.double(x$rho.hat),              
+             c            =as.double(x$c.hat),
+             GN           =as.integer(x$GN),
+             CN           =as.integer(x$CN),
+             rss          =as.double(0))
+  
+  y.hat <- matrix(run$y.hat,T,N)
+  
+  # output
+  list( y.hat=y.hat , rss=run$rss )
+}
+
