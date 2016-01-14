@@ -196,7 +196,7 @@ predict.nets <- function( x , newdata , ... ){
   #
   T     <- nrow(newdata)
   y.hat <- matrix(0,T,x$N)
-  y     <- rbind(x$y[(x$T-x$P):x$T,],newdata)
+  y     <- rbind(x$y[(x$T-x$P+1):x$T,],newdata)
   
   # call nets
   run <- .C( sprintf("nets_predict",algorithm),
@@ -213,8 +213,9 @@ predict.nets <- function( x , newdata , ... ){
              rss          =as.double(0))
   
   y.hat <- matrix(run$y.hat,T,N)
+  rss   <- run$rss/(T*N)
   
   # output
-  list( y.hat=y.hat , rss=run$rss )
+  list( y.hat=y.hat , rss=rss )
 }
 

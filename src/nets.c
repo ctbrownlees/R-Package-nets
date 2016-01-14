@@ -494,12 +494,12 @@ void nets_predict(double *_y_hat, double *_y, int *_T, int *_N, int *_P, double 
 				for( k=0; k<P; ++k ){
 					for( j=0; j<N; ++j){
 						for( l=0; l<N; ++l ){
-							if( i!=l ) y_hat[t][i] += rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * alpha[ ALPIDX(l,j,k,N,P) ] * y[t-k-1+P][j];
+							if( i!=l ) y_hat[t][i] -= rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * alpha[ ALPIDX(l,j,k,N,P) ] * y[t-k-1+P][j];
 						}
 					}
 				}
 				for( l=0; l<N; ++l ){
-					if( i!=l ) y_hat[t][i] -= rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * y[t+P][l];
+					if( i!=l ) y_hat[t][i] += rho[ RHOIDX(i,l) ] * sqrt(c[l]/c[i]) * y[t+P][l];
 				}
 			}
 
