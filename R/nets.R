@@ -1,14 +1,14 @@
 
 .packageName <- "nets"
 
-nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , alpha.init=NULL , rho.init=NULL , algorithm='activeshooting' , weights='adaptive' , maxiter=100 , verbose=FALSE ){
+nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , alpha.init=NULL , rho.init=NULL , algorithm='activeshooting' , weights='adaptive' , iter.in=100 , iter.out=2 , verbose=FALSE ){
   
   # input check
   if( !is.data.frame(y) & !is.matrix(y) ){
     stop("The 'y' parameter has to be a TxN matrix or a data.frame of data")
   }
-  if( maxiter < 1 ){
-    stop("The 'maxiter' parameter has to be positive")
+  if( iter.in < 1 | iter.out < 1 ){
+    stop("The 'iter' parameters have to be positive")
   }
   if( p<0 ){
     stop("The 'p' parameter has to be nonnegative")
@@ -74,7 +74,8 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
 
     } 
     else{
-      eps <- y
+      eps      <- y
+      iter.out <- 1
     }
     
     if( CN == TRUE ){
@@ -86,7 +87,9 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
   }
   
   # call nets
-  run <- .C( sprintf("nets_%s",algorithm),
+  for( iter in 1:iter.out ){
+    cat('iter',iter,'of',iter.out,'\n')
+    run <- .C( sprintf("nets_%s",algorithm),
              alpha        =as.double(alpha),
              rho          =as.double(rho), 
              alpha.weights=as.double(alpha.weights),
@@ -100,9 +103,10 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
              GN           =as.integer(GN),
              CN           =as.integer(CN),
              v            =as.integer(verbose),
-             m            =as.integer(maxiter),
+             m            =as.integer(iter.in),
 	           rss          =as.double(0),
 	           npar         =as.double(0))
+  }
   
   # package results
   obj <- list()

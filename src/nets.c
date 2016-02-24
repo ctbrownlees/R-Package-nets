@@ -219,10 +219,15 @@ void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rh
 
 	// rss and npar
 	*rss = 0.0;
-	for( i=0; i<N*T; ++i ){
-		*rss += y_aux[i]*y_aux[i];
+	for( i=0; i<N; i++ ) {
+		c[i] = 0.0;
+ 		for( t=0; t<T; t++) { 
+			*rss  += y_aux[ T * i + t ]*y_aux[ T * i + t ];
+			c[i] += y_aux[ T * i + t ]*y_aux[ T * i + t ];
+		}
+		c[i] = 1/c[i];
 	}
-      
+     
 	*npar = 0.0;
 	for( i=0; i<N*N*P; ++i ){     
 		*npar += fabs(alpha[i])>0?1:0;
@@ -426,8 +431,13 @@ void nets_activeshooting(double *alpha, double *rho, double *alpha_weights, doub
 
 	// rss and npar
 	*rss = 0.0;
-	for( i=0; i<N*T; ++i ){
-		*rss += y_aux[i]*y_aux[i];
+	for( i=0; i<N; i++ ) {
+		c[i] = 0.0;
+ 		for( t=0; t<T; t++) { 
+			*rss  += y_aux[ T * i + t ]*y_aux[ T * i + t ];
+			c[i] += y_aux[ T * i + t ]*y_aux[ T * i + t ];
+		}
+		c[i] = T/c[i];
 	}
       
 	*npar = 0.0;
