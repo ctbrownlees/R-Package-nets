@@ -2,9 +2,9 @@
 library(MASS)
 library(nets)
 
-set.seed(12345)
+set.seed(123456)
 
-N <- 10
+N <- 20
 P <- 2
 L <- 40
 T <- 1000
@@ -24,21 +24,7 @@ C[2,4] <- -0.2
 C[1,3] <- -0.1
 C[1,3] <- -0.1
 
-g.adj <- 1*( A[,,1]!=0 | A[,,2]!=0 ) - diag(N)
-c.adj <- 1*(C!=0) - diag(N)
-
 Sig    <- solve(C)
-
-alpha  <- c()
-for( p in 1:P ){
-  for( i in 1:N ){
-    alpha <- c(alpha,A[i,,p])
-  }
-}
-
-c      <- diag(C)
-PC     <- -diag( c**(-0.5) ) %*% C %*% diag( c**(-0.5) )
-rho    <- PC[ upper.tri(PC) ]
 
 y      <- matrix(0,T,N)
 eps    <- mvrnorm(T,rep(0,N),Sig)
@@ -51,10 +37,22 @@ for( t in (P+1):T ){
 }
 
 #
-mdl <- nets(y[1:round(0.9*T),],P,lambda=c(20,40),verbose=TRUE) 
+lamdba <- c(1,2)
+system.time( mdl <- nets(y,P,lambda=lambda*T,verbose=TRUE)  )
 
-cbind( mdl$g.adj , g.adj )
+g.adj.hat <- mdl$g.adj
 
-cbind( mdl$c.adj , c.adj )
+granger.network.hat <- graph.adjacency( g.adj.hat , mode='directed' )
 
-mdl.pred <- predict(mdl,y[round(0.9*T+1):T,]) 
+degree <- degree(granger.network)
+V( granger.network )$size <- round( (degree/max(degree))*10+2 )
+
+plot( granger.network.hat , edge.arrow.size=0.25 )
+
+c.adj.hat <- mdl$c.adj
+contemporaneous.network <- graph.adjacency( c.adj.hat , mode='undirected' )
+
+degree <- degree(contemporaneous.network)
+V( contemporaneous.network )$size <- round( (degree/max(degree))*10+2 )
+
+plot( contemporaneous.network )

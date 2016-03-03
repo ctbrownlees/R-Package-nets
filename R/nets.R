@@ -75,7 +75,6 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
     } 
     else{
       eps      <- y
-      iter.out <- 1
     }
     
     if( CN == TRUE ){
@@ -83,7 +82,10 @@ nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter
       PC          <- -diag( c.hat**(-0.5) ) %*% C.hat %*% diag( c.hat**(-0.5) )	        
       rho.pre     <- PC[ upper.tri(PC) ]
       rho.weights <- 1/(abs(rho.pre)+1e-4)      
-    }    
+    }  
+    else{
+      iter.out <- 1
+    }
   }
   
   # call nets
@@ -190,16 +192,19 @@ print.nets <- function( x , ... ) {
     cat( ' Lasso Penalty: ', x$lambda )
 }
 
-predict.nets <- function( x , newdata , ... ){
+predict.nets <- function( object , newdata , ... ){
 
   # input check
   if( !is.data.frame(newdata) & !is.matrix(newdata) ){
     stop("The 'newdata' parameter has to be a TxN matrix or a data.frame of new observation")
   }
   
+  x     <- object
+  
   #
   T     <- nrow(newdata)
-  y.hat <- matrix(0,T,x$N)
+  N     <- x$N
+  y.hat <- matrix(0,T,N)
   y     <- rbind(x$y[(x$T-x$P+1):x$T,],newdata)
   
   # call nets
@@ -222,4 +227,3 @@ predict.nets <- function( x , newdata , ... ){
   # output
   list( y.hat=y.hat , rss=rss )
 }
-

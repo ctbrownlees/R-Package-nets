@@ -1,3 +1,4 @@
+import(igraph)
 useDynLib(nets)
 export(nets)
 S3method(print,nets)
