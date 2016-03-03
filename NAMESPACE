@@ -1,4 +1,5 @@
 import(igraph)
+importFrom("stats", "coef", "cov", "lm") 
 useDynLib(nets)
 export(nets)
 S3method(print,nets)
