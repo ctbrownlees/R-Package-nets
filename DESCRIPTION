@@ -2,10 +2,12 @@ Package: nets
 Type: Package
 Title: Network Estimation for Time Series
 Version: 0.8
-Date: 2015-05-28
+Date: 2016-03-01
 Author: Christian Brownlees
 Maintainer: Christian Brownlees <christian.brownlees@upf.edu>
 Depends: igraph
-Description: The package provides routines for network estimation for multivariate time series 
+Description: Sparse VAR estimation based on LASSO.
 License: GPL 
 LazyLoad: yes
+URL: https://github.com/ctbrownlees/R-Package-nets
+Repository: CRAN

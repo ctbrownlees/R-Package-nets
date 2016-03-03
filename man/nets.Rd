@@ -4,7 +4,7 @@
 \alias{predict.nets}
 \title{Network Estimation for Time Series}
 \description{`nets` is used to fit sparse VARs using the NETS algorithm.}
-\usage{ nets( y , GN=TRUE , CN=TRUE , p=1 , lambda , alpha.init=NULL , rho.init=NULL , algorithm='activeshooting' , weights='adaptive' , iter.in=100 , iter.out=2 , verbose=FALSE ) }
+\usage{ nets(y,GN=TRUE,CN=TRUE,p=1,lambda,alpha.init=NULL,rho.init=NULL,algorithm='activeshooting',weights='adaptive',iter.in=100,iter.out=2,verbose=FALSE)}
 \arguments{
 \item{y}{data, an T x N matrix, each column being a time series.}
 \item{GN}{Estimate the Autoregressive VAR matrices (default true)}

@@ -19,7 +19,7 @@ nets <- function( y , GN=TRUE , CN=TRUE , p=1 , lambda=stop("shrinkage parameter
   if( GN==FALSE & CN==FALSE ){
     stop("At least A or G have to be true")  
   }
-  if( !(algorithm %in% c('std','shooting','activeset','activeshooting')) ){
+  if( !(algorithm %in% c('shooting','activeshooting')) ){
     stop("The algorihm has to be set to: shooting' or 'activeshooting'")  
   }
   if( !(weights %in% c('adaptive','none')) ){
@@ -88,10 +88,13 @@ nets <- function( y , GN=TRUE , CN=TRUE , p=1 , lambda=stop("shrinkage parameter
     }
   }
   
+  if( algorithm == 'activeshooting' ){ algorithm <- 'nets_activeshooting' }
+  else{ algorithm <- 'nets_shooting' }
+  
   # call nets
   for( iter in 1:iter.out ){
     cat('iter',iter,'of',iter.out,'\n')
-    run <- .C( sprintf("nets_%s",algorithm),
+    run <- .C(algorithm,
              alpha        =as.double(alpha),
              rho          =as.double(rho), 
              alpha.weights=as.double(alpha.weights),
