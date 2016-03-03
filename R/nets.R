@@ -1,7 +1,7 @@
 
 .packageName <- "nets"
 
-nets <- function( y , p=1 , GN=TRUE , CN=TRUE , lambda=stop("shrinkage parameter 'lambda' has not been set") , alpha.init=NULL , rho.init=NULL , algorithm='activeshooting' , weights='adaptive' , iter.in=100 , iter.out=2 , verbose=FALSE ){
+nets <- function( y , GN=TRUE , CN=TRUE , p=1 , lambda=stop("shrinkage parameter 'lambda' has not been set") , alpha.init=NULL , rho.init=NULL , algorithm='activeshooting' , weights='adaptive' , iter.in=100 , iter.out=2 , verbose=FALSE ){
   
   # input check
   if( !is.data.frame(y) & !is.matrix(y) ){

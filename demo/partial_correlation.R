@@ -11,7 +11,7 @@ Sig  <- solve(C)
 y    <- mvrnorm(T,rep(0,N),Sig)
 
 lambda  <- 0.03
-system.time( mdl <- nets(y,lambda=lambda*T,verbose=TRUE,GN=FALSE) )
+system.time( mdl <- nets(y,GN=FALSE,lambda=lambda*T,verbose=TRUE) )
 
 c.adj.hat <- mdl$c.adj
 contemporaneous.network <- graph.adjacency( c.adj.hat , mode='undirected' )

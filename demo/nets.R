@@ -2,7 +2,7 @@
 library(MASS)
 library(nets)
 
-set.seed(123456)
+set.seed(1234)
 
 N <- 20
 P <- 2
@@ -37,8 +37,8 @@ for( t in (P+1):T ){
 }
 
 #
-lamdba <- c(1,2)
-system.time( mdl <- nets(y,P,lambda=lambda*T,verbose=TRUE)  )
+lambda <- c(0.1,0.01)
+system.time( mdl <- nets(y,p=P,lambda=lambda*T,verbose=TRUE)  )
 
 g.adj.hat <- mdl$g.adj
 

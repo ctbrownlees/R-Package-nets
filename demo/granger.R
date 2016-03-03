@@ -29,7 +29,7 @@ matplot(y,t='l')
 
 # estimate var
 lambda  <- 0.01
-system.time( mdl <- nets(y,P,lambda=lambda*T,CN=FALSE,verbose=TRUE) )
+system.time( mdl <- nets(y,CN=FALSE,p=P,lambda=lambda*T,verbose=TRUE) )
 
 g.adj.hat <- mdl$g.adj
 
