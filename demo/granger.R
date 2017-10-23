@@ -35,7 +35,7 @@ g.adj.hat <- mdl$g.adj
 
 granger.network.hat <- graph.adjacency( g.adj.hat , mode='directed' )
 
-degree <- degree(granger.network)
-V( granger.network )$size <- round( (degree/max(degree))*10+2 )
+degree <- degree(granger.network.hat)
+V( granger.network.hat )$size <- round( (degree/max(degree))*10+2 )
 
 plot( granger.network.hat , edge.arrow.size=0.25 )

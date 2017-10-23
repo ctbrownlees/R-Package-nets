@@ -166,14 +166,14 @@ nets <- function( y , GN=TRUE , CN=TRUE , p=1 , lambda=stop("shrinkage parameter
   I.n <- diag(N)
   
   if( CN == TRUE ){
-    PCN  <- C.hat > 0
+    PCN  <- abs(C.hat) > 0
     PCN[row(I.n) == col(I.n) ] <- 0
     obj$c.adj <- 1*(PCN > 0)
   }
   if( GN == TRUE ){
     DGN <- matrix(0,N,N)
     for( p in 1:P ){
-      DGN <- DGN | A.hat[,,p]>0
+      DGN <- DGN | abs(A.hat[,,p])>0
     }
     DGN[row(I.n) == col(I.n) ] <- 0
     obj$g.adj    <- 1*DGN
@@ -182,7 +182,7 @@ nets <- function( y , GN=TRUE , CN=TRUE , p=1 , lambda=stop("shrinkage parameter
     KL         <- t(I.n-DGN ) %*% C.hat %*% ( I.n-DGN )
     LRPCN      <- -diag( diag(KL)**(-0.5) ) %*% KL %*% diag( diag(KL)**(-0.5) )
     LRPCN[row(I.n) == col(I.n) ] <- 0
-    obj$lr.adj <- 1*(LRPCN > 0)
+    obj$lr.adj <- 1*abs(LRPCN > 0)
   }
   
   return(obj)
