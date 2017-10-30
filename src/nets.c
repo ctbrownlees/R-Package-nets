@@ -1,6 +1,10 @@
 
-#include <R.h>
 #include <math.h>
+#include <stdlib.h>
+
+#include <R.h>
+#include <Rinternals.h>
+#include <R_ext/Rdynload.h>
 
 #define MAX(a,b)          (a>b?a:b)
 #define MIN(a,b)          (a<b?a:b)
@@ -8,6 +12,16 @@
 #define ALPIDX(i,j,p,N,P) ( p*N*N + i*N + j )
 
 //#define DEBUG
+
+static const R_CallMethodDef CallEntries[] = {
+  {NULL, NULL, 0}
+};
+
+void R_init_splines(DllInfo *dll)
+{
+  R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+  R_useDynamicSymbols(dll, FALSE);
+}
 
 void nets_shooting(double *alpha, double *rho, double *alpha_weights, double *rho_weights, double *_lambda, double *_y, int *_T, int *_N, int *_P, double *c, int *GN, int *CN, int *v, int *m, double *rss, double *npar);
 
