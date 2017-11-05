@@ -1,5 +1,6 @@
 *.pdf
 *.Rdata
+*.Rhistory
 *.csv
 *.png
 *.Rproj
