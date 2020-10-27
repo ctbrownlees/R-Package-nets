@@ -211,7 +211,7 @@ predict.nets <- function( object , newdata , ... ){
   y     <- rbind(x$y[(x$T-x$P+1):x$T,],newdata)
   
   # call nets
-  run <- .C( sprintf("nets_predict",algorithm),
+  run <- .C( "nets_predict",
              y.hat        =as.double(y.hat),
              y            =as.double(y),
              T            =as.integer(T),
